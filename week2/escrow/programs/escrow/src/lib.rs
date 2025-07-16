@@ -45,7 +45,7 @@ pub mod escrow {
         transfer_checked(cpi_ctx, offer_amnt, acc.offer_mint.decimals)
     }
 
-    pub fn accept(ctx: Context<Accept>, _offer_id: u64) -> Result<()> {
+    pub fn accept(ctx: Context<Accept>, offer_id: u64) -> Result<()> {
         let accnts = ctx.accounts;
 
         //transfer asked token from acceptors sending ata to initiators recieving ata
@@ -60,6 +60,22 @@ pub mod escrow {
                 },
             ),
             accnts.offer.ask_amount,
+            accnts.asked_mint.decimals,
+        )?;
+
+        //transfer offered token from vault to acceptors recieving ata
+        transfer_checked(
+            CpiContext::new_with_signer(
+                accnts.token_program.to_account_info(),
+                TransferChecked {
+                    from: accnts.vault.to_account_info(),
+                    mint: accnts.asked_mint.to_account_info(),
+                    to: accnts.acceptors_recieving_ata.to_account_info(),
+                    authority: accnts.acceptor.to_account_info(),
+                },
+                &[&[b"offer".as_ref(), &offer_id.to_le_bytes(), &[ctx.bumps.offer]]],
+            ),
+            accnts.offer.offer_amount,
             accnts.asked_mint.decimals,
         )
     }
