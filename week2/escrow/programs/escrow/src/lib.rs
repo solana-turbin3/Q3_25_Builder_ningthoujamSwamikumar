@@ -12,8 +12,8 @@ pub mod escrow {
 
     pub fn initialize(
         ctx: Context<Initialize>,
-        offer_mint: Pubkey,
-        ask_mint: Pubkey,
+        //offer_mint: Pubkey,
+        //ask_mint: Pubkey,
         offer_amnt: u64,
         ask_amnt: u64,
         offer_id: u64,
@@ -24,9 +24,9 @@ pub mod escrow {
         //initialize the offer (escrow)
         acc.offer.set_inner(Offer {
             offer_amount: offer_amnt,
-            offer_mint,
+            offer_mint: acc.offer_mint.key(),
             ask_amount: ask_amnt,
-            ask_mint,
+            ask_mint: acc.ask_mint.key(),
             user: *acc.initializer.key,
             offer_id,
         });
@@ -73,7 +73,11 @@ pub mod escrow {
                     to: accnts.acceptors_recieving_ata.to_account_info(),
                     authority: accnts.acceptor.to_account_info(),
                 },
-                &[&[b"offer".as_ref(), &offer_id.to_le_bytes(), &[ctx.bumps.offer]]],
+                &[&[
+                    b"offer".as_ref(),
+                    &offer_id.to_le_bytes(),
+                    &[ctx.bumps.offer],
+                ]],
             ),
             accnts.offer.offer_amount,
             accnts.asked_mint.decimals,
