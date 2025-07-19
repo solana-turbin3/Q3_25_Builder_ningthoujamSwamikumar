@@ -1,1 +1,36 @@
 Streaming transaction logs mentioning 6Cd8qb7i2pknKX2VyHUZLJJJUCarhw9Eg26qfd7FXus8. Confirmed commitment
+Transaction executed in slot 8:
+  Signature: 4NCbYqrXLNeepM1aPXkW7uM69dxM5T5Uh4tNsq9swG2h5MEUQhxAyp5Vc8SNHWTiREsQ9HyA9kthMjEyxaDavDSK
+  Status: Ok
+  Log Messages:
+    Program 6Cd8qb7i2pknKX2VyHUZLJJJUCarhw9Eg26qfd7FXus8 invoke [1]
+    Program log: Instruction: Initialize
+    Program 11111111111111111111111111111111 invoke [2]
+    Program 11111111111111111111111111111111 success
+    Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]
+    Program log: Create
+    Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+    Program log: Instruction: GetAccountDataSize
+    Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 928 of 178298 compute units
+    Program return: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb qgAAAAAAAAA=
+    Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+    Program 11111111111111111111111111111111 invoke [3]
+    Program 11111111111111111111111111111111 success
+    Program log: Initialize the associated token account
+    Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+    Program log: Instruction: InitializeImmutableOwner
+    Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 487 of 172440 compute units
+    Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+    Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [3]
+    Program log: Instruction: InitializeAccount3
+    Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1440 of 169564 compute units
+    Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+    Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 15865 of 183685 compute units
+    Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success
+    Program log: Greetings from: 6Cd8qb7i2pknKX2VyHUZLJJJUCarhw9Eg26qfd7FXus8
+    Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]
+    Program log: Instruction: TransferChecked
+    Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1738 of 155975 compute units
+    Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success
+    Program 6Cd8qb7i2pknKX2VyHUZLJJJUCarhw9Eg26qfd7FXus8 consumed 46511 of 200000 compute units
+    Program 6Cd8qb7i2pknKX2VyHUZLJJJUCarhw9Eg26qfd7FXus8 success

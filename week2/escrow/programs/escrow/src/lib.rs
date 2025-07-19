@@ -12,11 +12,9 @@ pub mod escrow {
 
     pub fn initialize(
         ctx: Context<Initialize>,
-        //offer_mint: Pubkey,
-        //ask_mint: Pubkey,
+        offer_id: u64,
         offer_amnt: u64,
         ask_amnt: u64,
-        offer_id: u64,
     ) -> Result<()> {
         msg!("Greetings from: {:?}", ctx.program_id);
         let acc = ctx.accounts;
@@ -35,8 +33,8 @@ pub mod escrow {
         //construct cpi context, and do a cpi call
         let transfer_accounts = TransferChecked {
             authority: acc.initializer.to_account_info(),
-            from: acc.initializer.to_account_info(),
-            to: acc.initializer_ata.to_account_info(),
+            from: acc.initializer_ata.to_account_info(),
+            to: acc.vault.to_account_info(),
             mint: acc.offer_mint.to_account_info(),
         };
 

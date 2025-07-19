@@ -1,7 +1,8 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Escrow } from "../target/types/escrow";
-import { Account, createMint, getOrCreateAssociatedTokenAccount, Mint, mintTo, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { Account, ASSOCIATED_TOKEN_PROGRAM_ID, createMint, getAccount, getAssociatedTokenAddress, getOrCreateAssociatedTokenAccount, Mint, mintTo, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { assert } from "chai";
 
 
 describe("escrow", () => {
@@ -19,7 +20,7 @@ describe("escrow", () => {
   const askMintDecimals = 4;
 
   let vault: Account;
-  let offer: anchor.web3.PublicKey;
+  //let offer: anchor.web3.PublicKey;
 
   it("initialized escrow", async () => {
     offerMintAddr = await createMint(
@@ -66,35 +67,50 @@ describe("escrow", () => {
       offerMintAddr,
       initializerAta.address,
       wallet.payer,
-      100 * offerMintDecimals
+      100 * offerMintDecimals,
+      [],
+      { commitment: "confirmed" },
+      TOKEN_2022_PROGRAM_ID
     );
 
-    // Add your test here.
-    const tx = await program.methods.initialize(new anchor.BN(10), new anchor.BN(20), new anchor.BN(offerId))
-      .accounts(
-        {
-          askMint: askMintAddr,
-          offerMint: offerMintAddr,
-          initializer: wallet.publicKey,
-          tokenProgram: TOKEN_2022_PROGRAM_ID
-        }
-      )
-      .rpc();
+    const offerAmnt = new anchor.BN(10);
+    const askAmnt = new anchor.BN(20);
+
+    const tx = await program.methods
+      .initialize(new anchor.BN(offerId), offerAmnt, askAmnt)
+      .accountsPartial({
+        askMint: askMintAddr,
+        offerMint: offerMintAddr,
+        initializer: wallet.publicKey,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+      })
+      .rpc({ commitment: "confirmed" });
 
     console.log("initiate tx successfull!", tx);
 
-    offer = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("offer"), new Uint8Array(offerId)],
-      program.programId)[0];
+    const latestBlockhash = await connection.getLatestBlockhash();
+    await connection.confirmTransaction({ signature: tx, ...latestBlockhash }, "confirmed");
 
-    vault = await getOrCreateAssociatedTokenAccount(
-      connection,
-      wallet.payer,
-      offerMintAddr,
-      offer
+    const txDetails = await connection.getParsedTransaction(tx, "confirmed");
+    console.log(txDetails?.meta?.logMessages);
+
+    const [offer, bump] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("offer"), new anchor.BN(offerId).toArrayLike(Buffer, 'le', 8)],
+      program.programId
     );
 
-    console.log("vault:", vault);
+    const vaultAddr = await getAssociatedTokenAddress(
+      offerMintAddr,
+      offer,
+      true,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    vault = await getAccount(connection, vaultAddr, undefined, TOKEN_2022_PROGRAM_ID);
 
+    console.log("vault account:", vault);
+
+    assert.ok(vault.mint.equals(offerMintAddr), "Unexpected vault mint");
+    assert.strictEqual(vault.amount.toString(), offerAmnt.toString(), "Unexpected vault amount");
   });
 });
