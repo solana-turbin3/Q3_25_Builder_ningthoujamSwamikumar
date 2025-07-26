@@ -15,11 +15,7 @@ declare_id!("GKQ1FR3p298PsaqkBV7ZNzBMZWA4FNzjAdK2dggtJPVj");
 pub mod token_swap_amm {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize::handler(ctx)
-    }
-
-    pub fn create_amm(ctx: Context<CreateAmm>, id: u64, fee: u64) -> Result<()> {
+    pub fn create_amm(ctx: Context<CreateAmm>, id: Pubkey, fee: u16) -> Result<()> {
         create_amm::handler(ctx, id, fee)
     }
 

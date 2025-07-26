@@ -3,9 +3,9 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(InitSpace)]
 pub struct Amm {
-    pub id: u64,
+    pub id: Pubkey,    
     pub admin: Pubkey,
-    pub fee: u64,
+    pub fee: u16,   //basis point
 }
 
 #[account]
@@ -15,3 +15,6 @@ pub struct Pool {
     pub mint_a: Pubkey,
     pub mint_b: Pubkey,
 }
+
+#[account]
+pub struct PoolAuthority {}

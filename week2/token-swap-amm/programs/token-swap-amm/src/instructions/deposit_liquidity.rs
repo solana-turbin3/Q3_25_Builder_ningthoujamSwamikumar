@@ -4,78 +4,71 @@ use fixed::types::I64F64;
 
 use crate::constants;
 use crate::error::ErrorCode;
-use crate::Amm;
 use crate::Pool;
+use crate::PoolAuthority;
 
 #[derive(Accounts)]
 pub struct DepositLiquidity<'info> {
     #[account(mut)]
     pub depositor: Signer<'info>,
 
-    #[account(
-        seeds = [amm.id.to_le_bytes().as_ref()],
-        bump
-    )]
-    pub amm: Account<'info, Amm>,
+    pub mint_a: Box<InterfaceAccount<'info, token_interface::Mint>>,
 
-    pub mint_a: InterfaceAccount<'info, token_interface::Mint>,
-
-    pub mint_b: InterfaceAccount<'info, token_interface::Mint>,
+    pub mint_b: Box<InterfaceAccount<'info, token_interface::Mint>>,
 
     #[account(
         mut,
-        seeds = [amm.key().as_ref(), mint_a.key().as_ref(), mint_b.key().as_ref(), constants::LIQUIDITY_SEED.as_ref()],
+        seeds = [pool.amm.key().as_ref(), mint_a.key().as_ref(), mint_b.key().as_ref(), constants::LIQUIDITY_SEED.as_ref()],
         bump,
     )]
-    pub mint_liquidity: InterfaceAccount<'info, token_interface::Mint>,
+    pub mint_liquidity: Box<InterfaceAccount<'info, token_interface::Mint>>,
 
     #[account(
-        seeds = [amm.key().as_ref(), mint_a.key().as_ref(), mint_b.key().as_ref()],
+        seeds = [pool.amm.key().as_ref(), pool.mint_a.key().as_ref(), pool.mint_b.key().as_ref()],
         bump,
         has_one = mint_a,
         has_one = mint_b,
     )]
-    pub pool: Account<'info, Pool>,
+    pub pool: Box<Account<'info, Pool>>,
 
-    /// CHECK: this PDA is derived inside the program and only used for signing
     #[account(
         seeds = [
-            amm.key().as_ref(),
+            pool.amm.key().as_ref(),
             mint_a.key().as_ref(),
             mint_b.key().as_ref(),
-            constants::AUTHORITY_SEED.as_ref(),
+            constants::AUTHORITY_SEED,
         ],
         bump,
     )]
-    pub pool_authority: AccountInfo<'info>,
+    pub pool_authority: Box<Account<'info, PoolAuthority>>,
 
     #[account(
         mut,
         associated_token::mint = mint_a,
         associated_token::authority = pool_authority,
     )]
-    pub pool_account_a: InterfaceAccount<'info, token_interface::TokenAccount>,
+    pub pool_account_a: Box<InterfaceAccount<'info, token_interface::TokenAccount>>,
 
     #[account(
         mut,
         associated_token::mint = mint_b,
         associated_token::authority = pool_authority,
     )]
-    pub pool_account_b: InterfaceAccount<'info, token_interface::TokenAccount>,
+    pub pool_account_b: Box<InterfaceAccount<'info, token_interface::TokenAccount>>,
 
     #[account(
         mut,
         associated_token::mint = mint_a,
         associated_token::authority = depositor,
     )]
-    pub depositor_ata_a: InterfaceAccount<'info, token_interface::TokenAccount>,
+    pub depositor_ata_a: Box<InterfaceAccount<'info, token_interface::TokenAccount>>,
 
     #[account(
         mut,
         associated_token::mint = mint_b,
         associated_token::authority = depositor,
     )]
-    pub depositor_ata_b: InterfaceAccount<'info, token_interface::TokenAccount>,
+    pub depositor_ata_b: Box<InterfaceAccount<'info, token_interface::TokenAccount>>,
 
     #[account(
         init_if_needed,
@@ -85,7 +78,7 @@ pub struct DepositLiquidity<'info> {
         constraint = depositor_ata_liquidity.mint == mint_liquidity.key(),
         constraint = depositor_ata_liquidity.owner == depositor.key(),
     )]
-    pub depositor_ata_liquidity: InterfaceAccount<'info, token_interface::TokenAccount>,
+    pub depositor_ata_liquidity: Box<InterfaceAccount<'info, token_interface::TokenAccount>>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Interface<'info, token_interface::TokenInterface>,
@@ -192,7 +185,7 @@ pub fn handler(ctx: Context<DepositLiquidity>, amount_a: u64, amount_b: u64) -> 
                 authority: ctx.accounts.pool_authority.to_account_info(),
             },
             &[
-                &[ctx.accounts.amm.key().as_ref()],
+                &[ctx.accounts.pool.amm.key().as_ref()],
                 &[ctx.accounts.mint_a.key().as_ref()],
                 &[ctx.accounts.mint_b.key().as_ref()],
                 &[constants::AUTHORITY_SEED],

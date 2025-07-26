@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{self, TokenInterface};
 
-use crate::constants::*;
+use crate::{constants::*};
 use crate::{error::ErrorCode, Amm, Pool};
 
 #[derive(Accounts)]
@@ -11,7 +11,7 @@ pub struct CreatePool<'info> {
     pub creator: Signer<'info>,
 
     #[account(
-        seeds = [amm.id.to_le_bytes().as_ref()],
+        seeds = [amm.id.key().as_ref()],
         bump
     )]
     pub amm: Account<'info, Amm>,
@@ -33,18 +33,18 @@ pub struct CreatePool<'info> {
     #[account(
         init,
         payer = creator,
-        space = 8 + Pool::INIT_SPACE,
         seeds = [amm.key().as_ref(), mint_a.key().as_ref(), mint_b.key().as_ref()],
-        bump
+        bump,
+        space = 8 + Pool::INIT_SPACE
     )]
     pub pool: Account<'info, Pool>,
 
-    /// CHECK: this PDA is derived inside the program and only used for signing
+    ///CHECK: Read only authority
     #[account(
         seeds = [amm.key().as_ref(), mint_a.key().as_ref(), mint_b.key().as_ref(), AUTHORITY_SEED],
         bump
     )]
-    pub pool_authority: AccountInfo<'info>,
+    pub pool_authority: UncheckedAccount<'info>,
 
     #[account(
         init,
@@ -69,7 +69,7 @@ pub struct CreatePool<'info> {
 
 pub fn handler(ctx: Context<CreatePool>) -> Result<()> {
     require!(
-        ctx.accounts.mint_a.key() < ctx.accounts.mint_b.key(),
+        ctx.accounts.mint_a.key().to_bytes() < ctx.accounts.mint_b.key().to_bytes(),
         ErrorCode::TokenMintOrderError
     );
     ctx.accounts.pool.set_inner(Pool {
