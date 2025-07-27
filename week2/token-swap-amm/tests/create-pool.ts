@@ -4,11 +4,25 @@ import { TokenSwapAmm } from "../target/types/token_swap_amm";
 import { createAndMintTokens, createValues, ITestValues } from "./utils";
 import { expect } from "chai";
 
-describe('create pool', () => {
+//creator
+// amm //pda
+// mint_a //mint
+// mint_b //mint
+// mint_liquidity //mint
+// pool
+// pool_authority
+// pool_account_a
+// pool_account_b
+// system_program
+// token_program
+// associated_token_program
+
+describe.only('create pool', () => {
     anchor.setProvider(anchor.AnchorProvider.env());
     const program = anchor.workspace.tokenSwapAmm as Program<TokenSwapAmm>;
 
     let values: ITestValues;
+    const { wallet, connection } = anchor.getProvider();
 
     before(async () => {
         values = createValues();
@@ -19,7 +33,6 @@ describe('create pool', () => {
             }).rpc();
         console.log("✅ amm created");
 
-        const { wallet, connection } = anchor.getProvider();
         await createAndMintTokens(
             wallet.publicKey,
             values.mintA,
@@ -32,19 +45,16 @@ describe('create pool', () => {
         console.log("✅ tokens created and minted to wallet accounts");
     })
 
-    it("create", async () => {
+    it.only("create", async () => {
+        //console.log("values:", values);
+
         await program.methods.createPool()
-            .accountsPartial({
+            .accounts({
+                creator: wallet.publicKey,
+                amm: values.ammKey,
                 mintA: values.mintA.publicKey,
                 mintB: values.mintB.publicKey,
-                mintLiquidity: values.mintLiquidity,
-                pool: values.pool,
-                poolAccountA: values.poolAccountA,
-                poolAccountB: values.poolAccountB,
-                poolAuthority: values.poolAuthority,
                 tokenProgram: values.tokenProgram,
-                amm: values.ammKey,
-                creator: anchor.getProvider().wallet.publicKey
             })
             .rpc();
     })

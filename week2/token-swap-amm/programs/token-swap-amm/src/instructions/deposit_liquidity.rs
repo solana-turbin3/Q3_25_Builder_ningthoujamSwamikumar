@@ -1,11 +1,11 @@
 use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface;
 use fixed::types::I64F64;
 
 use crate::constants;
 use crate::error::ErrorCode;
 use crate::Pool;
-use crate::PoolAuthority;
 
 #[derive(Accounts)]
 pub struct DepositLiquidity<'info> {
@@ -31,6 +31,7 @@ pub struct DepositLiquidity<'info> {
     )]
     pub pool: Box<Account<'info, Pool>>,
 
+    ///CHECK: this account is being used as read only authority
     #[account(
         seeds = [
             pool.amm.key().as_ref(),
@@ -40,7 +41,7 @@ pub struct DepositLiquidity<'info> {
         ],
         bump,
     )]
-    pub pool_authority: Box<Account<'info, PoolAuthority>>,
+    pub pool_authority: UncheckedAccount<'info>,
 
     #[account(
         mut,
@@ -81,12 +82,12 @@ pub struct DepositLiquidity<'info> {
     pub depositor_ata_liquidity: Box<InterfaceAccount<'info, token_interface::TokenAccount>>,
 
     pub system_program: Program<'info, System>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Interface<'info, token_interface::TokenInterface>,
-    pub associated_token_program: Interface<'info, token_interface::TokenInterface>,
 }
 
 pub fn handler(ctx: Context<DepositLiquidity>, amount_a: u64, amount_b: u64) -> Result<()> {
-    //create lp token mint in accounts struct ✅
+    //created lp token mint in accounts struct ✅
 
     //check token balances and take the minimum balance - prevents depositing tokens the depositor doesn't own
     let mut amount_a = if amount_a > ctx.accounts.depositor_ata_a.amount {
@@ -132,14 +133,14 @@ pub fn handler(ctx: Context<DepositLiquidity>, amount_a: u64, amount_b: u64) -> 
     };
 
     //calculate amount of liquidity token
-    //the lp token supply represents pool size, while it also directly and linearly proportionate to the amount of tokens deposited
+    //the lp token supply represents pool size, while it also directly and linearly proportionate to the amount of tokens deposited, so we are using geometric mean to calculate the amount of liquidity token
     let mut liquidity = I64F64::from_num(amount_a)
         .checked_mul(I64F64::from_num(amount_b))
         .unwrap()
         .sqrt()
         .to_num::<u64>();
 
-    //lock minimum liquidity or prevent pool deposit if initial pool creation
+    //lock minimum liquidity or prevent pool deposit, if initial pool creation
     if pool_creation {
         if liquidity < constants::MINIMUM_LIQUIDITY {
             return err!(ErrorCode::DepositTooSmall);
@@ -152,10 +153,10 @@ pub fn handler(ctx: Context<DepositLiquidity>, amount_a: u64, amount_b: u64) -> 
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             token_interface::TransferChecked {
-                from: ctx.accounts.depositor_ata_a.to_account_info(),
-                to: ctx.accounts.pool_account_a.to_account_info(),
-                authority: ctx.accounts.depositor.to_account_info(),
                 mint: ctx.accounts.mint_a.to_account_info(),
+                from: ctx.accounts.depositor_ata_a.to_account_info(),
+                authority: ctx.accounts.depositor.to_account_info(),
+                to: ctx.accounts.pool_account_a.to_account_info(),
             },
         ),
         amount_a,
@@ -165,10 +166,10 @@ pub fn handler(ctx: Context<DepositLiquidity>, amount_a: u64, amount_b: u64) -> 
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             token_interface::TransferChecked {
-                from: ctx.accounts.depositor_ata_b.to_account_info(),
-                to: ctx.accounts.pool_account_b.to_account_info(),
-                authority: ctx.accounts.depositor.to_account_info(),
                 mint: ctx.accounts.mint_b.to_account_info(),
+                from: ctx.accounts.depositor_ata_b.to_account_info(),
+                authority: ctx.accounts.depositor.to_account_info(),
+                to: ctx.accounts.pool_account_b.to_account_info(),
             },
         ),
         amount_b,

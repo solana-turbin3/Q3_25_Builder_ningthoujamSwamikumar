@@ -51,6 +51,7 @@ pub struct CreatePool<'info> {
         payer = creator,
         associated_token::mint = mint_a,
         associated_token::authority = pool_authority,
+        associated_token::token_program = token_program
     )]
     pub pool_account_a: InterfaceAccount<'info, token_interface::TokenAccount>,
 
@@ -59,6 +60,7 @@ pub struct CreatePool<'info> {
         payer = creator,
         associated_token::mint = mint_b,
         associated_token::authority = pool_authority,
+        associated_token::token_program = token_program
     )]
     pub pool_account_b: InterfaceAccount<'info, token_interface::TokenAccount>,
 
