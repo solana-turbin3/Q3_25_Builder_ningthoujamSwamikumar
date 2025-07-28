@@ -47,6 +47,7 @@ pub struct DepositLiquidity<'info> {
         mut,
         associated_token::mint = mint_a,
         associated_token::authority = pool_authority,
+        associated_token::token_program = token_program,
     )]
     pub pool_account_a: Box<InterfaceAccount<'info, token_interface::TokenAccount>>,
 
@@ -54,6 +55,7 @@ pub struct DepositLiquidity<'info> {
         mut,
         associated_token::mint = mint_b,
         associated_token::authority = pool_authority,
+        associated_token::token_program = token_program,
     )]
     pub pool_account_b: Box<InterfaceAccount<'info, token_interface::TokenAccount>>,
 
@@ -61,6 +63,7 @@ pub struct DepositLiquidity<'info> {
         mut,
         associated_token::mint = mint_a,
         associated_token::authority = depositor,
+        associated_token::token_program = token_program,
     )]
     pub depositor_ata_a: Box<InterfaceAccount<'info, token_interface::TokenAccount>>,
 
@@ -68,6 +71,7 @@ pub struct DepositLiquidity<'info> {
         mut,
         associated_token::mint = mint_b,
         associated_token::authority = depositor,
+        associated_token::token_program = token_program
     )]
     pub depositor_ata_b: Box<InterfaceAccount<'info, token_interface::TokenAccount>>,
 
@@ -76,6 +80,7 @@ pub struct DepositLiquidity<'info> {
         payer = depositor,
         associated_token::mint = mint_liquidity,
         associated_token::authority = depositor,
+        associated_token::token_program = token_program,
         constraint = depositor_ata_liquidity.mint == mint_liquidity.key(),
         constraint = depositor_ata_liquidity.owner == depositor.key(),
     )]
@@ -185,12 +190,13 @@ pub fn handler(ctx: Context<DepositLiquidity>, amount_a: u64, amount_b: u64) -> 
                 to: ctx.accounts.depositor_ata_liquidity.to_account_info(),
                 authority: ctx.accounts.pool_authority.to_account_info(),
             },
-            &[
-                &[ctx.accounts.pool.amm.key().as_ref()],
-                &[ctx.accounts.mint_a.key().as_ref()],
-                &[ctx.accounts.mint_b.key().as_ref()],
-                &[constants::AUTHORITY_SEED],
-            ],
+            &[&[
+                ctx.accounts.pool.amm.key().as_ref(),
+                ctx.accounts.mint_a.key().as_ref(),
+                ctx.accounts.mint_b.key().as_ref(),
+                constants::AUTHORITY_SEED,
+                &[ctx.bumps.pool_authority],
+            ]],
         ),
         liquidity,
     )

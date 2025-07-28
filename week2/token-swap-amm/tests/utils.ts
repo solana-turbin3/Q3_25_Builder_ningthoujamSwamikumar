@@ -29,6 +29,9 @@ export interface ITestValues {
 
 type TDefaultTestValues = Partial<ITestValues>;
 
+export const MINT_A_DECIMALS = 4;
+export const MINT_B_DECIMALS = 3;
+
 export const createValues = (defaults?: TDefaultTestValues, user?: Keypair): ITestValues => {
     const program = anchor.workspace.tokenSwapAmm as Program<TokenSwapAmm>;
 
@@ -94,8 +97,8 @@ export const createAndMintTokens = async (
     connection: Connection,
     payer: anchor.web3.Signer
 ) => {
-    await createMint(connection, payer, mintAuthority, mintAuthority, 4, mintA, { commitment: "confirmed" }, tokenProgram);
-    await createMint(connection, payer, mintAuthority, mintAuthority, 3, mintB, { commitment: "confirmed" }, tokenProgram);
+    await createMint(connection, payer, mintAuthority, mintAuthority, MINT_A_DECIMALS, mintA, { commitment: "confirmed" }, tokenProgram);
+    await createMint(connection, payer, mintAuthority, mintAuthority, MINT_B_DECIMALS, mintB, { commitment: "confirmed" }, tokenProgram);
     //console.log("mints created");
 
     const depositorAccountA = await getOrCreateAssociatedTokenAccount(

@@ -17,7 +17,7 @@ import { expect } from "chai";
 // token_program
 // associated_token_program
 
-describe.only('create pool', () => {
+describe('create pool', () => {
     anchor.setProvider(anchor.AnchorProvider.env());
     const program = anchor.workspace.tokenSwapAmm as Program<TokenSwapAmm>;
 
@@ -45,7 +45,7 @@ describe.only('create pool', () => {
         console.log("✅ tokens created and minted to wallet accounts");
     })
 
-    it.only("create", async () => {
+    it("create", async () => {
         //console.log("values:", values);
 
         await program.methods.createPool()
