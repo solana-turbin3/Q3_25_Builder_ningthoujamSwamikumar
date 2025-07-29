@@ -4,19 +4,6 @@ import { TokenSwapAmm } from "../target/types/token_swap_amm";
 import { createAndMintTokens, createValues, ITestValues } from "./utils";
 import { expect } from "chai";
 
-//creator
-// amm //pda
-// mint_a //mint
-// mint_b //mint
-// mint_liquidity //mint
-// pool
-// pool_authority
-// pool_account_a
-// pool_account_b
-// system_program
-// token_program
-// associated_token_program
-
 describe('create pool', () => {
     anchor.setProvider(anchor.AnchorProvider.env());
     const program = anchor.workspace.tokenSwapAmm as Program<TokenSwapAmm>;

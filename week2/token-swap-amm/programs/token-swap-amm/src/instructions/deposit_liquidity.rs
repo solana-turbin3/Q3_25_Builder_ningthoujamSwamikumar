@@ -4,7 +4,7 @@ use anchor_spl::token_interface;
 use fixed::types::I64F64;
 
 use crate::constants;
-use crate::error::ErrorCode;
+use crate::amm_error::AmmErrorCode;
 use crate::Pool;
 
 #[derive(Accounts)]
@@ -148,7 +148,7 @@ pub fn handler(ctx: Context<DepositLiquidity>, amount_a: u64, amount_b: u64) -> 
     //lock minimum liquidity or prevent pool deposit, if initial pool creation
     if pool_creation {
         if liquidity < constants::MINIMUM_LIQUIDITY {
-            return err!(ErrorCode::DepositTooSmall);
+            return err!(AmmErrorCode::DepositTooSmall);
         }
         liquidity -= constants::MINIMUM_LIQUIDITY;
     }

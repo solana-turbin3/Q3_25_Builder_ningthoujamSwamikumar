@@ -79,9 +79,9 @@ export const createValues = (defaults?: TDefaultTestValues, user?: Keypair): ITe
         poolAccountA,
         poolAccountB,
         tokenProgram,
-        depositorAccountA: user ? getAssociatedTokenAddressSync(mintA.publicKey, user.publicKey) : undefined,
-        depositorAccountB: user ? getAssociatedTokenAddressSync(mintB.publicKey, user.publicKey) : undefined,
-        depositorAccountLiquidity: user ? getAssociatedTokenAddressSync(mintLiquidity, user.publicKey) : undefined,
+        depositorAccountA: user ? getAssociatedTokenAddressSync(mintA.publicKey, user.publicKey, false, tokenProgram) : undefined,
+        depositorAccountB: user ? getAssociatedTokenAddressSync(mintB.publicKey, user.publicKey, false, tokenProgram) : undefined,
+        depositorAccountLiquidity: user ? getAssociatedTokenAddressSync(mintLiquidity, user.publicKey, false, tokenProgram) : undefined,
     }
 }
 

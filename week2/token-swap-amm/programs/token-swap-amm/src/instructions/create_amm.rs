@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::error::ErrorCode;
+use crate::amm_error::AmmErrorCode;
 use crate::Amm;
 
 #[derive(Accounts)]
@@ -17,7 +17,7 @@ pub struct CreateAmm<'info> {
         space = 8 + Amm::INIT_SPACE,
         seeds = [id.key().as_ref()],
         bump,
-        constraint = fee < 10000 @ ErrorCode::InvalidFee,
+        constraint = fee < 10000 @ AmmErrorCode::InvalidFee,
     )]
     pub amm: Account<'info, Amm>,
 

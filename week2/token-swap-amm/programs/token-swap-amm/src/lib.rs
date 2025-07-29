@@ -1,5 +1,5 @@
+pub mod amm_error;
 pub mod constants;
-pub mod error;
 pub mod instructions;
 pub mod state;
 
@@ -29,5 +29,14 @@ pub mod token_swap_amm {
         amount_b: u64,
     ) -> Result<()> {
         deposit_liquidity::handler(ctx, amount_a, amount_b)
+    }
+
+    pub fn swap_token(
+        ctx: Context<SwapToken>,
+        swap_a: bool,
+        input_amount: u64,
+        min_output_amount: u64,
+    ) -> Result<()> {
+        swap_exact_token_for_token::handler(ctx, swap_a, input_amount, min_output_amount)
     }
 }

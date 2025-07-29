@@ -43,6 +43,7 @@ describe("deposit-liquidity", () => {
         await program.methods.createPool()
             .accounts({
                 creator: wallet.publicKey,
+                //@ts-ignore
                 amm: values.ammKey,
                 mintA: values.mintA.publicKey,
                 mintB: values.mintB.publicKey,
@@ -55,6 +56,7 @@ describe("deposit-liquidity", () => {
         await program.methods.depositLiquidity(new anchor.BN(200), new anchor.BN(100))
             .accounts({
                 depositor: wallet.publicKey,
+                //@ts-expect-error
                 mintA: values.mintA,
                 mintB: values.mintB,
                 pool: values.pool,
@@ -62,10 +64,12 @@ describe("deposit-liquidity", () => {
             }).rpc();
 
         const poolAccountABalance = BigInt((await connection.getTokenAccountBalance(values.poolAccountA)).value.amount);
+        //@ts-expect-error
         console.log("poolA balance", (await connection.getParsedAccountInfo(values.poolAccountA)).value.data.parsed.info.tokenAmount);
         assert(poolAccountABalance > BigInt(180), "Expected poolAccountABalance to be gt 180");
 
         const poolAccountBBalance = BigInt((await connection.getTokenAccountBalance(values.poolAccountB)).value.amount);
+        //@ts-expect-error
         console.log("poolB balance", (await connection.getParsedAccountInfo(values.poolAccountB)).value.data.parsed.info.tokenAmount);
         assert(poolAccountBBalance > BigInt(80), "Expected poolAccountBBalance to be gt 80");
 
@@ -76,6 +80,7 @@ describe("deposit-liquidity", () => {
 
         const ataA = getAssociatedTokenAddressSync(values.mintA.publicKey, wallet.publicKey, false, values.tokenProgram);
         const ataABalance = BigInt((await connection.getTokenAccountBalance(ataA)).value.amount);
+        //@ts-expect-error
         console.log("ata balance", (await connection.getParsedAccountInfo(ataA)).value.data.parsed.info.tokenAmount);
         expect(ataABalance).to.equal(BigInt(1000 * Math.pow(10, MINT_A_DECIMALS)) - BigInt(200));
     })
