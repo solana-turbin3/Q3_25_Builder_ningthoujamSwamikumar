@@ -9,6 +9,7 @@ describe('create pool', () => {
     const program = anchor.workspace.tokenSwapAmm as Program<TokenSwapAmm>;
 
     let values: ITestValues;
+    const { wallet, connection } = anchor.getProvider();
 
     before(async () => {
         values = createValues();
@@ -19,7 +20,6 @@ describe('create pool', () => {
             }).rpc();
         console.log("✅ amm created");
 
-        const { wallet, connection } = anchor.getProvider();
         await createAndMintTokens(
             wallet.publicKey,
             values.mintA,
@@ -33,18 +33,15 @@ describe('create pool', () => {
     })
 
     it("create", async () => {
+        //console.log("values:", values);
+
         await program.methods.createPool()
-            .accountsPartial({
+            .accounts({
+                creator: wallet.publicKey,
+                amm: values.ammKey,
                 mintA: values.mintA.publicKey,
                 mintB: values.mintB.publicKey,
-                mintLiquidity: values.mintLiquidity,
-                pool: values.pool,
-                poolAccountA: values.poolAccountA,
-                poolAccountB: values.poolAccountB,
-                poolAuthority: values.poolAuthority,
                 tokenProgram: values.tokenProgram,
-                amm: values.ammKey,
-                creator: anchor.getProvider().wallet.publicKey
             })
             .rpc();
     })

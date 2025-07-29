@@ -22,11 +22,17 @@ export interface ITestValues {
     poolAccountA: PublicKey;
     poolAccountB: PublicKey;
     tokenProgram: PublicKey;
+    depositorAccountA?: PublicKey;
+    depositorAccountB?: PublicKey;
+    depositorAccountLiquidity?: PublicKey;
 }
 
 type TDefaultTestValues = Partial<ITestValues>;
 
-export const createValues = (defaults?: TDefaultTestValues): ITestValues => {
+export const MINT_A_DECIMALS = 4;
+export const MINT_B_DECIMALS = 3;
+
+export const createValues = (defaults?: TDefaultTestValues, user?: Keypair): ITestValues => {
     const program = anchor.workspace.tokenSwapAmm as Program<TokenSwapAmm>;
 
     const id = defaults?.id ?? PublicKey.unique();
@@ -36,8 +42,11 @@ export const createValues = (defaults?: TDefaultTestValues): ITestValues => {
     let mintA = defaults?.mintA ?? Keypair.generate();
     let mintB = defaults?.mintB ?? Keypair.generate();
     //make the smaller address to be mintA
-    if (!defaults?.mintA && !defaults?.mintB && new anchor.BN(mintB.publicKey.toBytes()).lt(new anchor.BN(mintB.publicKey.toBytes()))) {
+    const mintANumber = new anchor.BN(mintA.publicKey.toBytes());
+    const mintBNumber = new anchor.BN(mintB.publicKey.toBytes());
+    if (!defaults?.mintA && !defaults?.mintB && mintANumber.gt(mintBNumber)) {
         [mintA, mintB] = [mintB, mintA];
+        console.log("👌 token mints reordered ✔️");
     }
     let [mintLiquidity] = PublicKey.findProgramAddressSync(
         [ammKey.toBuffer(), mintA.publicKey.toBuffer(), mintB.publicKey.toBuffer(), Buffer.from("liquidity")],
@@ -51,7 +60,9 @@ export const createValues = (defaults?: TDefaultTestValues): ITestValues => {
         [ammKey.toBuffer(), mintA.publicKey.toBuffer(), mintB.publicKey.toBuffer(), Buffer.from("authority")],
         program.programId
     );
+
     const tokenProgram = defaults?.tokenProgram ?? TOKEN_2022_PROGRAM_ID;
+
     const poolAccountA = getAssociatedTokenAddressSync(mintA.publicKey, poolAuthority, true, tokenProgram);
     const poolAccountB = getAssociatedTokenAddressSync(mintB.publicKey, poolAuthority, true, tokenProgram);
 
@@ -67,7 +78,10 @@ export const createValues = (defaults?: TDefaultTestValues): ITestValues => {
         poolAuthority,
         poolAccountA,
         poolAccountB,
-        tokenProgram
+        tokenProgram,
+        depositorAccountA: user ? getAssociatedTokenAddressSync(mintA.publicKey, user.publicKey, false, tokenProgram) : undefined,
+        depositorAccountB: user ? getAssociatedTokenAddressSync(mintB.publicKey, user.publicKey, false, tokenProgram) : undefined,
+        depositorAccountLiquidity: user ? getAssociatedTokenAddressSync(mintLiquidity, user.publicKey, false, tokenProgram) : undefined,
     }
 }
 
@@ -83,11 +97,11 @@ export const createAndMintTokens = async (
     connection: Connection,
     payer: anchor.web3.Signer
 ) => {
-    await createMint(connection, payer, mintAuthority, mintAuthority, 4, mintA, { commitment: "confirmed" }, tokenProgram);
-    await createMint(connection, payer, mintAuthority, mintAuthority, 3, mintB, { commitment: "confirmed" }, tokenProgram);
+    await createMint(connection, payer, mintAuthority, mintAuthority, MINT_A_DECIMALS, mintA, { commitment: "confirmed" }, tokenProgram);
+    await createMint(connection, payer, mintAuthority, mintAuthority, MINT_B_DECIMALS, mintB, { commitment: "confirmed" }, tokenProgram);
     //console.log("mints created");
 
-    const ataA = await getOrCreateAssociatedTokenAccount(
+    const depositorAccountA = await getOrCreateAssociatedTokenAccount(
         connection,
         payer,
         mintA.publicKey,
@@ -97,7 +111,7 @@ export const createAndMintTokens = async (
         { commitment: "confirmed" },
         tokenProgram
     );
-    const ataB = await getOrCreateAssociatedTokenAccount(
+    const depositorAccountB = await getOrCreateAssociatedTokenAccount(
         connection,
         payer,
         mintB.publicKey,
@@ -113,7 +127,7 @@ export const createAndMintTokens = async (
         connection,
         payer,
         mintA.publicKey,
-        ataA.address,
+        depositorAccountA.address,
         mintAuthority,
         1000 * Math.pow(10, 4),
         undefined,
@@ -124,7 +138,7 @@ export const createAndMintTokens = async (
         connection,
         payer,
         mintB.publicKey,
-        ataB.address,
+        depositorAccountB.address,
         mintAuthority,
         1000 * Math.pow(10, 3),
         undefined,

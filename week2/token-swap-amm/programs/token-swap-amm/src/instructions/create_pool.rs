@@ -3,7 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{self, TokenInterface};
 
 use crate::{constants::*};
-use crate::{error::ErrorCode, Amm, Pool};
+use crate::{amm_error::AmmErrorCode, Amm, Pool};
 
 #[derive(Accounts)]
 pub struct CreatePool<'info> {
@@ -51,6 +51,7 @@ pub struct CreatePool<'info> {
         payer = creator,
         associated_token::mint = mint_a,
         associated_token::authority = pool_authority,
+        associated_token::token_program = token_program
     )]
     pub pool_account_a: InterfaceAccount<'info, token_interface::TokenAccount>,
 
@@ -59,6 +60,7 @@ pub struct CreatePool<'info> {
         payer = creator,
         associated_token::mint = mint_b,
         associated_token::authority = pool_authority,
+        associated_token::token_program = token_program
     )]
     pub pool_account_b: InterfaceAccount<'info, token_interface::TokenAccount>,
 
@@ -70,7 +72,7 @@ pub struct CreatePool<'info> {
 pub fn handler(ctx: Context<CreatePool>) -> Result<()> {
     require!(
         ctx.accounts.mint_a.key().to_bytes() < ctx.accounts.mint_b.key().to_bytes(),
-        ErrorCode::TokenMintOrderError
+        AmmErrorCode::TokenMintOrderError
     );
     ctx.accounts.pool.set_inner(Pool {
         amm: ctx.accounts.amm.key(),
