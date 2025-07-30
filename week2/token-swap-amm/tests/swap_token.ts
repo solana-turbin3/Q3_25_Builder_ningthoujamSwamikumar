@@ -3,7 +3,7 @@ import { TokenSwapAmm } from "../target/types/token_swap_amm";
 import { createAndMintTokens, createValues, ITestValues } from "./utils";
 import { expect } from "chai";
 
-describe.only("swap-token-for-token", () => {
+describe("swap-token-for-token", () => {
     anchor.setProvider(anchor.AnchorProvider.env());
     const program = anchor.workspace.tokenSwapAmm as anchor.Program<TokenSwapAmm>;
     const { connection, wallet } = program.provider;
@@ -33,6 +33,7 @@ describe.only("swap-token-for-token", () => {
         await program.methods.createPool()
             .accounts({
                 creator: wallet.publicKey,
+                //@ts-expect-error
                 amm: values.ammKey,
                 mintA: values.mintA.publicKey,
                 mintB: values.mintB.publicKey,
@@ -43,6 +44,7 @@ describe.only("swap-token-for-token", () => {
         await program.methods.depositLiquidity(new anchor.BN(1000), new anchor.BN(1200))
             .accounts({
                 depositor: wallet.publicKey,
+                //@ts-expect-error
                 pool: values.pool,
                 tokenProgram: values.tokenProgram,
             }).rpc();
@@ -51,6 +53,7 @@ describe.only("swap-token-for-token", () => {
         await program.methods.depositLiquidity(new anchor.BN(500), new anchor.BN(1200))
             .accounts({
                 depositor: wallet.publicKey,
+                //@ts-expect-error
                 pool: values.pool,
                 tokenProgram: values.tokenProgram,
             }).rpc();
@@ -64,6 +67,7 @@ describe.only("swap-token-for-token", () => {
         await program.methods.swapToken(true, new anchor.BN(150), new anchor.BN(100))
             .accounts({
                 user: wallet.publicKey,
+                //@ts-expect-error
                 amm: values.ammKey,
                 mintA: values.mintA.publicKey,
                 mintB: values.mintB.publicKey,
@@ -85,6 +89,7 @@ describe.only("swap-token-for-token", () => {
         await program.methods.swapToken(false, new anchor.BN(150), new anchor.BN(100))
             .accounts({
                 user: wallet.publicKey,
+                //@ts-expect-error
                 amm: values.ammKey,
                 mintA: values.mintA.publicKey,
                 mintB: values.mintB.publicKey,
@@ -104,6 +109,7 @@ describe.only("swap-token-for-token", () => {
             await program.methods.swapToken(true, new anchor.BN(150), new anchor.BN(150))
                 .accounts({
                     user: wallet.publicKey,
+                    //@ts-expect-error
                     amm: values.ammKey,
                     mintA: values.mintA.publicKey,
                     mintB: values.mintB.publicKey,
@@ -122,6 +128,7 @@ describe.only("swap-token-for-token", () => {
             await program.methods.swapToken(true, new anchor.BN(20000000), new anchor.BN(150))
                 .accounts({
                     user: wallet.publicKey,
+                    //@ts-expect-error
                     amm: values.ammKey,
                     mintA: values.mintA.publicKey,
                     mintB: values.mintB.publicKey,
