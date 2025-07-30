@@ -39,4 +39,8 @@ pub mod token_swap_amm {
     ) -> Result<()> {
         swap_exact_token_for_token::handler(ctx, swap_a, input_amount, min_output_amount)
     }
+
+    pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+        withdraw_liquidity::handler(ctx, amount)
+    }
 }
