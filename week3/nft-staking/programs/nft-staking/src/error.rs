@@ -7,4 +7,7 @@ pub enum StakingError {
 
     #[msg("Can't unstake during freeze period!")]
     FreezePeriod,
+
+    #[msg("User must have reward points to claim it!")]
+    NoRewardsToClaim,
 }
