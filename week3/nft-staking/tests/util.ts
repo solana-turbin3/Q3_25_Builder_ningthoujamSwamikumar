@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { web3 } from "@coral-xyz/anchor";
 import { NftStaking } from "../target/types/nft_staking";
-import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { getAssociatedTokenAddress, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Connection, Keypair, PublicKey, Signer } from "@solana/web3.js";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { createGenericFile, generateSigner, keypairIdentity, percentAmount, Umi } from "@metaplex-foundation/umi";
@@ -18,25 +18,47 @@ export interface ITestValues {
     rewardMint: web3.PublicKey;
     tokenProgram: web3.PublicKey;
     userAccount?: PublicKey;
+    stakeAccounts: PublicKey[];
+    userAtas: PublicKey[];
+    vaults: PublicKey[];
 }
 
 export const CONFIG_SEED = Buffer.from("config");
 export const REWARD_MINT_SEED = Buffer.from("reward mint");
 export const USER_SEED = Buffer.from("user account");
 
-export const createValues = (defaultValues?: Partial<ITestValues>, user?: PublicKey): ITestValues => {
+/**
+ * generates accounts that are needed to test the program
+ * @param defaultValues optional and not utilized much
+ * @param user needed at initialize_user instruction and beyond
+ * @param nftValues needed at stake instruction and beyond
+ * @returns 
+ */
+export const createValues = async (defaultValues?: Partial<ITestValues>, user?: PublicKey, nftValues?: ReturnNfts): Promise<ITestValues> => {
     const admin = defaultValues.admin ?? web3.Keypair.generate();
     const [config, configBump] = web3.PublicKey.findProgramAddressSync([CONFIG_SEED], program.programId);
     const [rewardMint, rewardMintBump] = web3.PublicKey.findProgramAddressSync([REWARD_MINT_SEED, config.toBuffer()], program.programId);
     const [userAccount, userAccountBump] = user ? PublicKey.findProgramAddressSync([USER_SEED, user.toBuffer()], program.programId) : undefined;
     const tokenProgram = TOKEN_PROGRAM_ID;
 
+    const stakeAccount1Pda = user && nftValues ? PublicKey.findProgramAddressSync([Buffer.from("stake account"), user.toBuffer(), nftValues.nft1.toBuffer()], program.programId) : undefined;
+    const stakeAccount2Pda = user && nftValues ? PublicKey.findProgramAddressSync([Buffer.from("stake account"), user.toBuffer(), nftValues.nft2.toBuffer()], program.programId) : undefined;
+
+    const userAta1 = user && nftValues ? await getAssociatedTokenAddress(nftValues.nft1, user) : undefined;
+    const userAta2 = user && nftValues ? await getAssociatedTokenAddress(nftValues.nft2, user) : undefined;
+
+    const vault1 = user && nftValues ? await getAssociatedTokenAddress(nftValues.nft1, stakeAccount1Pda[0], true) : undefined;
+    const vault2 = user && nftValues ? await getAssociatedTokenAddress(nftValues.nft2, stakeAccount2Pda[0], true) : undefined;
+
     return {
         admin,
         config,
         rewardMint,
         tokenProgram,
-        userAccount
+        userAccount,
+        stakeAccounts: user && nftValues ? [stakeAccount1Pda[0], stakeAccount2Pda[0]] : [],
+        userAtas: user && nftValues ? [userAta1, userAta2] : [],
+        vaults: user && nftValues ? [vault1, vault2] : [],
     }
 }
 

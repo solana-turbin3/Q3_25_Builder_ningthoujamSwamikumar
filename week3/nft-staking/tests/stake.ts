@@ -17,8 +17,8 @@ describe.only("stake nft", () => {
   let nftValues: ReturnNfts;
 
   beforeEach(async () => {
-    values = createValues({}, wallet.publicKey);
     nftValues = await createNfts(connection, wallet.payer);
+    values = await createValues({}, wallet.publicKey, nftValues);
 
     //airdrop the admin
     const recentBlockhash = await connection.getLatestBlockhash("confirmed");
@@ -29,46 +29,65 @@ describe.only("stake nft", () => {
       .accounts({
         admin: values.admin.publicKey,
         tokenProgram: values.tokenProgram
-      }).signers([values.admin]).rpc();
-    console.log("✅ initialized config");
+      }).signers([values.admin]).rpc({ commitment: "confirmed" });
+    console.log("initialized config ✔️");
 
     await program.methods.initializeUser()
       .accounts({
         user: wallet.publicKey
-      }).rpc();
-    console.log("✅ initialized user");
+      }).rpc({ commitment: "confirmed" });
+    console.log("initialized user ✔️");
   })
 
   it("stake nft1", async () => {
+    //console.log("values:", values);
+    const userAccountData = await program.account.userAccount.fetch(values.userAccount, "confirmed");
+    //console.log("userAccountData:", userAccountData);
+
+    const userAccountInfo = await connection.getAccountInfo(values.userAccount, "confirmed");
+    //console.log("userAccountInfo:", userAccountInfo);
+    expect(userAccountInfo).to.be.not.null;
+
     await program.methods.stakeNft()
       .accounts({
         mint: nftValues.nft1,
         tokenProgram: values.tokenProgram,
         user: wallet.publicKey,
-      }).rpc();
+        userAccount: values.userAccount,
+      }).rpc({ commitment: "confirmed" });
+    console.log("✅ NFT staked");
+
     const metadataPda = findMetadataPda(nftValues.umi, { mint: publicKey(nftValues.nft1.toString()) });
-    console.log("metadataPda:", metadataPda);
+    //console.log("metadataPda:", metadataPda);
     const metadata = await fetchMetadata(nftValues.umi, metadataPda);
-    console.log("nft1 metadata:", metadata);
+    //console.log("nft1 metadata:", metadata);
+
     const onchainAsset = await fetchDigitalAsset(nftValues.umi, publicKey(nftValues.nft1));
-    console.log("onchainAsset:", onchainAsset);
-    nftValues.umi.downloader.downloadJson(metadata.uri)
-      .then(res => {
-        console.log("downloader res:", res);
-        return res.image;
-      })
-      .then(image => nftValues.umi.downloader.download([image]))
-      .then(imageBuffer => fs.writeFileSync("nft1-image.png", Buffer.from(imageBuffer[0].buffer)))
-      .catch(err => console.log("downloader err:", err));
-    //this is expected to fail, as we are using mockstorage, direct fetching doesn't work
-    fetch(metadata.uri)
-      .then(res => console.log("offchain metadata:", res))
-      .catch(err => console.log("error fetching offchain data:", err));
+    //console.log("onchainAsset:", onchainAsset);
+
+    //Since, we are using mockstorage, direct fetching won't work
+    const downloadedImagePath = "tests/nft1-image.png";
+    fs.unlinkSync(downloadedImagePath); //remove already existed file
+    expect(fs.existsSync(downloadedImagePath)).to.be.false;
+    console.log("Expectation✅-image path doesn't exist");
+    const offchainData = await nftValues.umi.downloader.downloadJson(metadata.uri);
+    const imageBuffer = await nftValues.umi.downloader.download([offchainData.image]);
+    fs.writeFileSync(downloadedImagePath, Buffer.from(imageBuffer[0].buffer));
+    expect(fs.existsSync(downloadedImagePath)).to.be.true;
+    console.log("Expectation✅ downloaded image path exist");
 
     expect(metadata.collection.__option).to.be.equal("Some");
+    console.log("Expectation✅ metadata collection has value 'Some'");
     if (metadata.collection.__option === "Some") {
       expect(metadata.collection?.value.key).to.be.equal(publicKey(nftValues.collection));
       expect(metadata.collection?.value.verified).to.be.true;
+      console.log("Expectation✅ metadata.collection equals nftValues.collection, and metadata.collection.verified is true");
     }
+
+    const newUserAccountData = await program.account.userAccount.fetch(values.userAccount, "confirmed");
+    console.log("newUserAccountData:", newUserAccountData);
+    expect(newUserAccountData.amountStaked).to.be.greaterThan(0);
+    expect(newUserAccountData.points).to.be.equal(0);
+    console.log("Expectation✅ newUserAccountData.amountStaked > 0 and newuserAccountData.points equals 0");
   })
 });

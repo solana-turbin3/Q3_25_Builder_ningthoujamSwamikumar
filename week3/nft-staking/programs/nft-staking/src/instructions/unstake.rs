@@ -111,8 +111,8 @@ impl<'info> Unstake<'info> {
         ))?;
 
         //update reward points for the user
-        self.user_account.amount_staked -= 1;
-        self.user_account.points += reward_point as u32;
+        self.user_account.amount_staked = self.user_account.amount_staked + 1;
+        self.user_account.points = self.user_account.points + reward_point as u32;
 
         Ok(())
     }
