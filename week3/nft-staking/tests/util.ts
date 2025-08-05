@@ -16,6 +16,7 @@ export interface ITestValues {
     admin: web3.Keypair;
     config: web3.PublicKey;
     rewardMint: web3.PublicKey;
+    reward_ata: web3.PublicKey;
     tokenProgram: web3.PublicKey;
     userAccount?: PublicKey;
     stakeAccounts: PublicKey[];
@@ -53,6 +54,8 @@ export const createValues = async (defaultValues?: Partial<ITestValues>, user?: 
     const vault1 = user && nftValues ? await getAssociatedTokenAddress(nftValues.nft1, stakeAccount1Pda[0], true) : undefined;
     const vault2 = user && nftValues ? await getAssociatedTokenAddress(nftValues.nft2, stakeAccount2Pda[0], true) : undefined;
 
+    const reward_ata = await getAssociatedTokenAddress(rewardMint, user);
+
     return {
         admin,
         config,
@@ -65,6 +68,7 @@ export const createValues = async (defaultValues?: Partial<ITestValues>, user?: 
         freeze_period: 10, //10 seconds for testing
         max_unstake: 3,
         points_per_stake: 120,
+        reward_ata,
     }
 }
 

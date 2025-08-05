@@ -39,7 +39,11 @@ pub mod nft_staking {
         ctx.accounts.handler()
     }
 
-    pub fn unstake_multiple(ctx: Context<UnstakeMultiple>) -> Result<()> {
-        unstake_multiple::handler(ctx)
+    // pub fn unstake_multiple(ctx: Context<UnstakeMultiple>) -> Result<()> {
+    //     unstake_multiple::handler(ctx)
+    // }
+
+    pub fn claim_reward(ctx: Context<Claim>) -> Result<()> {
+        ctx.accounts.handler()
     }
 }

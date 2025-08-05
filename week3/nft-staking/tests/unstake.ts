@@ -5,7 +5,7 @@ import { createNfts, createValues, ITestValues, ReturnNfts, waitForFreezePeriod 
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { expect } from "chai";
 
-describe.only("unstake nft", () => {
+describe("unstake nft", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
   const program = anchor.workspace.nftStaking as Program<NftStaking>;
   const { connection, wallet } = program.provider;
