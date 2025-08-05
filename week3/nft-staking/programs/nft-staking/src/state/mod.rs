@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(InitSpace)]
 pub struct Config {
-    pub points_per_stake: u8, //per year
+    pub points_per_stake: u8, //this could per time period in real program, this is for testing purpose
     pub max_unstake: u8,
     pub freeze_period: u32,
     pub rewards_bump: u8,

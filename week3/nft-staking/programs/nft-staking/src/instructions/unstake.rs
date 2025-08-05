@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface;
 
-use crate::constants::{CONFIG_SEED, STAKE_SEED, USER_SEED, YEAR_IN_SECS};
+use crate::constants::{CONFIG_SEED, DAY_IN_SECS, STAKE_SEED, USER_SEED};
 use crate::error::StakingError;
 use crate::{Config, StakeAccount, UserAccount};
 
@@ -19,7 +19,7 @@ pub struct Unstake<'info> {
     #[account(
         mut,
         seeds = [USER_SEED, user.key().as_ref()],
-        bump
+        bump = user_account.bump
     )]
     pub user_account: Account<'info, UserAccount>,
 
@@ -63,15 +63,18 @@ impl<'info> Unstake<'info> {
             StakingError::NoStakeFound
         );
         //check the nft for freeze period
+        let duration = now - self.stake_account.staked_at;
         require!(
-            self.stake_account.staked_at + self.config.freeze_period as i64 > now,
+            duration > self.config.freeze_period as i64,
             StakingError::FreezePeriod
         );
 
-        //calculate reward
-        let reward_point = (self.config.points_per_stake as i64
-            * (now - self.stake_account.staked_at))
-            / YEAR_IN_SECS;
+        //calculate reward //it would be like this in real world program
+        // let reward_point = (self.config.points_per_stake as i64)
+        //     .checked_mul(duration)
+        //     .unwrap_or(0)
+        //     / DAY_IN_SECS;
+        // msg!("reward_point: {}", reward_point);
 
         //transfer unstaking nft
         token_interface::transfer_checked(
@@ -111,8 +114,13 @@ impl<'info> Unstake<'info> {
         ))?;
 
         //update reward points for the user
-        self.user_account.amount_staked = self.user_account.amount_staked + 1;
-        self.user_account.points = self.user_account.points + reward_point as u32;
+        self.user_account.amount_staked = self.user_account.amount_staked - 1;
+        self.user_account.points = self
+            .user_account
+            .points
+            .saturating_add(self.config.points_per_stake as u32); //for testing purpose
+
+        msg!("user_account.points - {}", self.user_account.points);
 
         Ok(())
     }

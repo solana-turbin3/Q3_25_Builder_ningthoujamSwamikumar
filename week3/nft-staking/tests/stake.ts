@@ -8,7 +8,7 @@ import { publicKey } from "@metaplex-foundation/umi";
 import { expect } from "chai";
 import * as fs from "fs";
 
-describe.only("stake nft", () => {
+describe("stake nft", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
   const program = anchor.workspace.nftStaking as Program<NftStaking>;
   const { connection, wallet } = program.provider;

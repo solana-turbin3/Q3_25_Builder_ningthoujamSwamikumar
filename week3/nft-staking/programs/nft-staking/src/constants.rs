@@ -13,4 +13,4 @@ pub const USER_SEED: &[u8] = b"user account";
 pub const STAKE_SEED: &[u8] = b"stake account";
 
 #[constant]
-pub const YEAR_IN_SECS: i64 = 31_536_000i64;
+pub const DAY_IN_SECS: i64 = 86400i64;

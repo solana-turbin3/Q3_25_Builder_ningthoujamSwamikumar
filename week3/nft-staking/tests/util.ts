@@ -21,6 +21,9 @@ export interface ITestValues {
     stakeAccounts: PublicKey[];
     userAtas: PublicKey[];
     vaults: PublicKey[];
+    points_per_stake: number;
+    freeze_period: number;
+    max_unstake: number;
 }
 
 export const CONFIG_SEED = Buffer.from("config");
@@ -59,6 +62,9 @@ export const createValues = async (defaultValues?: Partial<ITestValues>, user?: 
         stakeAccounts: user && nftValues ? [stakeAccount1Pda[0], stakeAccount2Pda[0]] : [],
         userAtas: user && nftValues ? [userAta1, userAta2] : [],
         vaults: user && nftValues ? [vault1, vault2] : [],
+        freeze_period: 10, //10 seconds for testing
+        max_unstake: 3,
+        points_per_stake: 120,
     }
 }
 
@@ -198,3 +204,26 @@ export const createNfts = async (connection: Connection, user: Keypair): Promise
         umi
     };
 }
+
+export const waitForFreezePeriod = async (provider: anchor.Provider, admin: Keypair, seconds: number) => {
+    const start = await provider.connection.getBlockTime(await provider.connection.getSlot());
+
+    while (true) {
+        // Send a dummy tx to force block production
+        const tx = new anchor.web3.Transaction().add(
+            anchor.web3.SystemProgram.transfer({
+                fromPubkey: admin.publicKey,
+                toPubkey: admin.publicKey,
+                lamports: 0,
+            })
+        );
+        await provider.sendAndConfirm(tx, [admin]);
+
+        const current = await provider.connection.getBlockTime(await provider.connection.getSlot());
+        const timePassed = current - start;
+        if (timePassed > seconds) break;
+        console.log("⌚time passed:", timePassed);
+
+        await new Promise((r) => setTimeout(r, 500)); // small buffer
+    }
+};
