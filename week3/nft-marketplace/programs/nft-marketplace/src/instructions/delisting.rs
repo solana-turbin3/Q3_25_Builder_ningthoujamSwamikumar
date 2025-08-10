@@ -73,7 +73,7 @@ impl<'info> Delisting<'info> {
 
         //close vault
         token_interface::close_account(CpiContext::new_with_signer(
-            self.associated_token_program.to_account_info(),
+            self.token_program.to_account_info(),
             token_interface::CloseAccount {
                 account: self.vault.to_account_info(),
                 destination: self.user.to_account_info(),

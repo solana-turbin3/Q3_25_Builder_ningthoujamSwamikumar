@@ -22,7 +22,7 @@ pub struct Listing<'info> {
         payer = user,
         seeds = [LISTING_ACCOUNT_SEED, marketplace.key().as_ref(), user.key().as_ref(), listing_mint.key().as_ref()],
         bump,
-        space = ListingAccount::INIT_SPACE
+        space = 8 + ListingAccount::INIT_SPACE
     )]
     pub listing_account: Account<'info, ListingAccount>,
 

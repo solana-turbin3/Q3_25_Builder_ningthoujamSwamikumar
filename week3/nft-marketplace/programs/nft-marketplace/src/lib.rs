@@ -15,7 +15,7 @@ declare_id!("Eqa9e49Wn3pqDfkJQGEr3XcEWZesZvgGJACVRTZhDGRi");
 pub mod nft_marketplace {
     use super::*;
 
-    pub fn initialize_marketplace(ctx: Context<Initialize>, fee: u16) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>, fee: u16) -> Result<()> {
         ctx.accounts.handler(fee, ctx.bumps)
     }
 

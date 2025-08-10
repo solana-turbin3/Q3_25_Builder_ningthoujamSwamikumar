@@ -54,7 +54,7 @@ pub struct Purchase<'info> {
     #[account(
         mut,
         seeds = [TREASURY_SEED, marketplace.key().as_ref()],
-        bump
+        bump = marketplace.treasury_bump
     )]
     pub treasury: SystemAccount<'info>,
 
@@ -72,12 +72,14 @@ impl <'info> Purchase<'info> {
             from: self.buyer.to_account_info(),
             to: self.seller.to_account_info(),
         }), self.listing_account.price as u64)?;
+        msg!("buyer transferred price amount to seller");
 
         //transfer fee from buyer to treasury
         transfer(CpiContext::new(self.system_program.to_account_info(), Transfer {
             from: self.buyer.to_account_info(),
             to: self.treasury.to_account_info(),
         }), self.marketplace.fee as u64)?;
+        msg!("buyer transferred fee amount to treasury");
 
         //transfer nft
         token_interface::transfer_checked(
@@ -91,16 +93,21 @@ impl <'info> Purchase<'info> {
                 }, 
                 &[&[
                     LISTING_ACCOUNT_SEED, 
-                self.marketplace.key().as_ref(), 
-                self.seller.key().as_ref(), 
-                self.mint.key().as_ref()
-                ]]), 
-                1, 0)?;   
+                    self.marketplace.key().as_ref(), 
+                    self.seller.key().as_ref(), 
+                    self.mint.key().as_ref(),
+                    &[self.listing_account.bump]
+                ]]
+            ), 
+                1, self.mint.decimals)?;   
+        msg!("transferred nft to buyer");
+
+
 
         //close vault
         token_interface::close_account(
             CpiContext::new_with_signer(
-                self.associated_token_program.to_account_info(), 
+                self.token_program.to_account_info(), 
                 token_interface::CloseAccount { 
                     account: self.vault.to_account_info(),
                     destination: self.seller.to_account_info(), 
@@ -112,8 +119,9 @@ impl <'info> Purchase<'info> {
                 self.seller.key().as_ref(),
                 self.mint.key().as_ref(),
                 &[self.listing_account.bump]
-        ]]
-    ))?;
+            ]]
+        ))?;
+        msg!("vault account closed");
 
         Ok(())
     }
