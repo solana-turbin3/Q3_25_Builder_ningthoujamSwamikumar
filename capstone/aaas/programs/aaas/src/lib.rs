@@ -22,10 +22,9 @@ pub mod aaas {
     pub fn initialize_service(
         ctx: Context<InitService>,
         id: Pubkey,
-        fee: u16,
-        winning_threshold: u16,
+        fee: u16
     ) -> Result<()> {
-        ctx.accounts.handler(id, fee, winning_threshold, ctx.bumps)
+        ctx.accounts.handler(id, fee, ctx.bumps)
     }
 
     pub fn create_challenge(
@@ -33,8 +32,9 @@ pub mod aaas {
         id: Pubkey,
         start_time: u64,
         end_time: u64,
-        stake_amnt: u16,
+        stake_amnt: u64,
         proof: String,
+        winning_threshold: u16,
     ) -> Result<()> {
         ctx.accounts.handler(
             id,
@@ -43,11 +43,24 @@ pub mod aaas {
             stake_amnt,
             proof,
             ctx.accounts.service.key(),
+            winning_threshold,
             ctx.bumps,
         )
     }
 
-    pub fn join_challenge(ctx: Context<JoinChallenge>, id: Pubkey) -> Result<()> {
+    pub fn join_challenge(ctx: Context<JoinChallenge>) -> Result<()> {
         ctx.accounts.handler(ctx.bumps.candidate_account)
+    }
+
+    pub fn submit_proof(ctx: Context<SubmitProof>, proof: String) -> Result<()> {
+        ctx.accounts.handler(proof)
+    }
+
+    pub fn validate_proof(ctx: Context<ValidateProof>) -> Result<()> {
+        ctx.accounts.handler()
+    }
+
+    pub fn withdraw_reward(ctx: Context<WithdrawReward>) -> Result<()> {
+        ctx.accounts.handler()
     }
 }

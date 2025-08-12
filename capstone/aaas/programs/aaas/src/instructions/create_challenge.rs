@@ -48,9 +48,10 @@ impl<'info> CreateChallenge<'info> {
         id: Pubkey,
         start_time: u64,
         end_time: u64,
-        stake_amnt: u16,
+        stake_amnt: u64,
         proof: String,
         service_key: Pubkey,
+        winning_threshold: u16,
         bumps: CreateChallengeBumps,
     ) -> Result<()> {
         self.challenge.set_inner(Challenge {
@@ -59,8 +60,11 @@ impl<'info> CreateChallenge<'info> {
             end_time,
             stake_amnt,
             proof,
-            service_key,
+            service: service_key,
             bump: bumps.challenge,
+            candidate_count: 0,
+            winner_count: 0,
+            winning_threshold,
         });
         Ok(())
     }

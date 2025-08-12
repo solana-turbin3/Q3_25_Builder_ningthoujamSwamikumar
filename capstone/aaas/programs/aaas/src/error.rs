@@ -1,7 +1,19 @@
 use anchor_lang::prelude::*;
 
 #[error_code]
-pub enum ErrorCode {
-    #[msg("Custom error message")]
-    CustomError,
+pub enum AaasError {
+    #[msg("Challenge started!")]
+    ChallengeStarted,
+
+    #[msg("Challenge ended!")]
+    ChallengeEnded,
+
+    #[msg("Validation period exceeded!")]
+    ValidationPeriodEnded,
+
+    #[msg("Validation period is going on!")]
+    ValidationPeriod,
+
+    #[msg("Winning threshold is required!")]
+    WinningThreshold,
 }

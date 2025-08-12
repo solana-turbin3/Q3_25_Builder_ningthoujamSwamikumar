@@ -1,17 +1,19 @@
+use std::ops::AddAssign;
+
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface;
 
 use crate::constants::{CANDIDATE_SEED, CHALLENGE_SEED, DISCRIMINATOR};
+use crate::error::AaasError;
 use crate::{CandidateAccount, Challenge};
 
 #[derive(Accounts)]
-#[instruction(id: Pubkey)]
 pub struct JoinChallenge<'info> {
     #[account(mut)]
     pub candidate: Signer<'info>,
 
     #[account(
-        seeds = [CHALLENGE_SEED, challenge.service_key.key().as_ref(), challenge.id.key().as_ref()],
+        seeds = [CHALLENGE_SEED, challenge.service.key().as_ref(), challenge.id.key().as_ref()],
         bump = challenge.bump
     )]
     pub challenge: Account<'info, Challenge>,
@@ -19,7 +21,7 @@ pub struct JoinChallenge<'info> {
     #[account(
         init,
         payer = candidate,
-        seeds = [CANDIDATE_SEED, challenge.service_key.key().as_ref(), challenge.key().as_ref(), candidate.key().as_ref()],
+        seeds = [CANDIDATE_SEED, challenge.service.key().as_ref(), challenge.key().as_ref(), candidate.key().as_ref()],
         bump,
         space = DISCRIMINATOR + CandidateAccount::INIT_SPACE
     )]
@@ -48,9 +50,33 @@ pub struct JoinChallenge<'info> {
 }
 
 impl<'info> JoinChallenge<'info> {
-    pub fn handler(&mut self, _bump: u8) -> Result<()> {
+    pub fn handler(&mut self, bump: u8) -> Result<()> {
+        //check if challenge already started
+        let now = Clock::get()?.unix_timestamp as u64;
+        require!(now < self.challenge.start_time, AaasError::ChallengeStarted);
         //transfer stake amnt from candidate ata to vault
+        token_interface::transfer_checked(
+            CpiContext::new(
+                self.token_program.to_account_info(),
+                token_interface::TransferChecked {
+                    from: self.candidate_ata.to_account_info(),
+                    mint: self.usdc_mint.to_account_info(),
+                    to: self.vault.to_account_info(),
+                    authority: self.candidate.to_account_info(),
+                },
+            ),
+            self.challenge.stake_amnt,
+            self.usdc_mint.decimals,
+        )?;
         //initialize candidate account
+        self.candidate_account.candidate = self.candidate.key();
+        self.candidate_account.challenge = self.challenge.key();
+        self.candidate_account.bump = bump;
+        self.candidate_account.rewarded = false;
+
+        //update candidate count in challenge
+        self.challenge.candidate_count.add_assign(1);
+
         Ok(())
     }
 }

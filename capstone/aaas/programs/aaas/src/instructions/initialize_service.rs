@@ -28,14 +28,12 @@ impl<'info> InitService<'info> {
         &mut self,
         id: Pubkey,
         fee: u16,
-        winning_threshold: u16,
         bumps: InitServiceBumps,
     ) -> Result<()> {
         self.service.set_inner(Service {
             id,
             bump: bumps.service,
-            fee,
-            winning_threshold,
+            fee
         });
         Ok(())
     }

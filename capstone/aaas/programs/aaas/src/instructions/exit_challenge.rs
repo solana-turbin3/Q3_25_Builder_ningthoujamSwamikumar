@@ -1,3 +1,5 @@
+use std::ops::SubAssign;
+
 use anchor_lang::prelude::*;
 
 use crate::constants::{CANDIDATE_SEED, CHALLENGE_SEED};
@@ -5,7 +7,7 @@ use crate::error::AaasError;
 use crate::{CandidateAccount, Challenge};
 
 #[derive(Accounts)]
-pub struct SubmitProof<'info> {
+pub struct ExitChallenge<'info> {
     #[account(mut)]
     pub candidate: Signer<'info>,
 
@@ -17,23 +19,25 @@ pub struct SubmitProof<'info> {
 
     #[account(
         mut,
-        seeds = [CANDIDATE_SEED, challenge.service.key().as_ref(), challenge.key().as_ref(), candidate.key().as_ref()],
+        seeds = [CANDIDATE_SEED, challenge.service.key().as_ref(), challenge.key().as_ref(), candidate_account.candidate.key().as_ref()],
         bump = candidate_account.bump,
         has_one = challenge,
         has_one = candidate,
+        close = candidate,
     )]
     pub candidate_account: Account<'info, CandidateAccount>,
+
+    pub system_program: Program<'info, System>,
 }
 
-impl<'info> SubmitProof<'info> {
-    pub fn handler(&mut self, proof: String) -> Result<()> {
-        //check if challenge has ended, can't submit after challenge ends
+impl<'info> ExitChallenge<'info> {
+    pub fn handler(&mut self) -> Result<()> {
+        //check if the challenge has started
         let now = Clock::get()?.unix_timestamp as u64;
-        require!(now < self.challenge.end_time, AaasError::ChallengeEnded);
+        require!(now < self.challenge.start_time, AaasError::ChallengeStarted);
 
-        //save the proof, and initialized the acceptance at 0
-        self.candidate_account.proof = proof;
-        self.candidate_account.acceptance = 0u16;
+        //update candidate_count in challenge
+        self.challenge.candidate_count.sub_assign(1);
 
         Ok(())
     }
