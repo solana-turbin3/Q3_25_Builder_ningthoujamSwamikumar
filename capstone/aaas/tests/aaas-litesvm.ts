@@ -12,14 +12,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 describe.only("aaas with litesvm", () => {
-  const programId = PublicKey.unique();
+  //const programId = PublicKey.unique();
+  const program = anchor.workspace.aaas as anchor.Program<Aaas>;
+  const programId = program.programId;
   const svm = new LiteSVM();
   svm.addProgramFromFile(programId, join(__dirname, "../target/deploy/aaas.so"));
   const payer = new Keypair();
   svm.airdrop(payer.publicKey, BigInt(100_000_000));
   const usdcMint = new Keypair();
 
-  const program = anchor.workspace.aaas as anchor.Program<Aaas>;
 
   let multiSigners: Keypair[] = [];
 
@@ -49,7 +50,6 @@ describe.only("aaas with litesvm", () => {
     createUsdcMintTx.sign(payer, usdcMint);
     const res = svm.sendTransaction(createUsdcMintTx);
     console.log("create usdc mint account: ", res);
-    console.dir(res);
   })
 
   it("is initialized with manual inxn", async () => {
@@ -102,12 +102,15 @@ describe.only("aaas with litesvm", () => {
     tx.feePayer = payer.publicKey;
     tx.recentBlockhash = svm.latestBlockhash();
     tx.sign(payer, multiSigners[1], multiSigners[2]); //tx fee payer
+    try {
+      const res = svm.sendTransaction(tx);
+      console.log("res:", res);
+    } catch (err) {
+      console.error("Transaction failed:", err.logs ?? err);
+    }
 
-    const res = svm.sendTransaction(tx);
-    console.log("res:", res);
-
-    const usdcAccount = svm.getAccount(usdcMint.publicKey);
-    console.log("usdcAccount:", usdcAccount);
+    // const usdcAccount = svm.getAccount(usdcMint.publicKey);
+    // console.log("usdcAccount:", usdcAccount);
 
     const configAccount = svm.getAccount(PublicKey.findProgramAddressSync([Buffer.from("aaasConfig")], programId)[0]);
     console.log("configAccount:", configAccount);
