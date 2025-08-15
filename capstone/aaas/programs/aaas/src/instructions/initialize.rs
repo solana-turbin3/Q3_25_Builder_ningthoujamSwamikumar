@@ -51,12 +51,14 @@ impl<'info> Initialize<'info> {
         //verify the multi sig
         let mut sign_cnt = 0u8;
         for acc in remaining_accounts {
+            msg!("is_signer:{}", acc.is_signer);
             if acc.is_signer && signers.contains(&acc.key()) {
                 sign_cnt.add_assign(1);
             }
         }
         //check for signer threshold
         require!(sign_cnt >= threshold, AaasError::MutliSignerThreshold);
+        msg!("sign_cnt: {}, threshold: {}", sign_cnt, threshold);
 
         self.config.set_inner(AaasConfig {
             signers,
