@@ -16,4 +16,7 @@ pub enum AaasError {
 
     #[msg("Winning threshold is required!")]
     WinningThreshold,
+
+    #[msg("Multi-Signer threshold is violated!")]
+    MutliSignerThreshold,
 }

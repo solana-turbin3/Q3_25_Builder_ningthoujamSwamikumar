@@ -1,8 +1,11 @@
+use std::ops::AddAssign;
+
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface;
 
 use crate::constants::{CONFIG_SEED, DISCRIMINATOR};
+use crate::error::AaasError;
 use crate::AaasConfig;
 
 #[derive(Accounts)]
@@ -41,7 +44,20 @@ impl<'info> Initialize<'info> {
         signers: Vec<Pubkey>,
         threshold: u8,
         bumps: InitializeBumps,
+        remaining_accounts: &[AccountInfo],
     ) -> Result<()> {
+        msg!("Welcome to Aaas!");
+
+        //verify the multi sig
+        let mut sign_cnt = 0u8;
+        for acc in remaining_accounts {
+            if acc.is_signer && signers.contains(&acc.key()) {
+                sign_cnt.add_assign(1);
+            }
+        }
+        //check for signer threshold
+        require!(sign_cnt >= threshold, AaasError::MutliSignerThreshold);
+
         self.config.set_inner(AaasConfig {
             signers,
             threshold,

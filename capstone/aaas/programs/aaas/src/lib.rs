@@ -3,6 +3,9 @@ pub mod error;
 pub mod instructions;
 pub mod state;
 
+#[cfg(test)]
+mod tests;
+
 use anchor_lang::prelude::*;
 
 pub use constants::*;
@@ -16,15 +19,13 @@ pub mod aaas {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>, signers: Vec<Pubkey>, threshold: u8) -> Result<()> {
-        ctx.accounts.handler(signers, threshold, ctx.bumps)
+        ctx.accounts
+            .handler(signers, threshold, ctx.bumps, ctx.remaining_accounts)
     }
 
-    pub fn initialize_service(
-        ctx: Context<InitService>,
-        id: Pubkey,
-        fee: u16
-    ) -> Result<()> {
-        ctx.accounts.handler(id, fee, ctx.bumps)
+    pub fn initialize_service(ctx: Context<InitService>, id: Pubkey, fee: u16) -> Result<()> {
+        ctx.accounts
+            .handler(id, fee, ctx.bumps, ctx.remaining_accounts)
     }
 
     pub fn create_challenge(
