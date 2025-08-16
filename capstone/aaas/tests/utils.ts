@@ -1,5 +1,5 @@
 import { BN, Program } from "@coral-xyz/anchor";
-import { createInitializeMintInstruction, getAssociatedTokenAddressSync, MINT_SIZE, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { ACCOUNT_SIZE, createAssociatedTokenAccountInstruction, createInitializeMintInstruction, createMintToInstruction, getAssociatedTokenAddressSync, MINT_SIZE, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { FailedTransactionMetadata, LiteSVM } from "litesvm";
 import { Aaas } from "../target/types/aaas";
@@ -26,8 +26,13 @@ export type ITestValues = {
         proof: string;
         key: PublicKey;
         bump: number;
-        vault: PublicKey,
-        creator: Keypair,
+        vault: PublicKey;
+        creator: Keypair;
+    },
+    candidate: {
+        payer: Keypair;
+        account: PublicKey;
+        ata: PublicKey;
     }
 }
 
@@ -76,6 +81,30 @@ export const createValues = async (svm: LiteSVM, program: Program<Aaas>): Promis
     ], program.programId);
     const vault = getAssociatedTokenAddressSync(usdcMint.publicKey, challengePda[0], true);
 
+    const candidate = new Keypair();
+    if (svm.airdrop(candidate.publicKey, BigInt(100 * LAMPORTS_PER_SOL)) instanceof FailedTransactionMetadata)
+        throw new Error("Airdrop candidate failed!");
+    const candidateAccountPda = PublicKey.findProgramAddressSync([
+        Buffer.from("aaasCandidate"), servicePda[0].toBuffer(), challengePda[0].toBuffer(), candidate.publicKey.toBuffer()
+    ], program.programId);
+    const candidateAta = getAssociatedTokenAddressSync(usdcMint.publicKey, candidate.publicKey);
+    const candidateAtaTx = new Transaction().add(
+        createAssociatedTokenAccountInstruction(candidate.publicKey, candidateAta, candidate.publicKey, usdcMint.publicKey)
+    );
+    candidateAtaTx.recentBlockhash = svm.latestBlockhash();
+    candidateAtaTx.sign(candidate);
+    const candidateAtaRes = svm.sendTransaction(candidateAtaTx);
+    console.log("candidateAtaRes:", candidateAtaRes);
+
+    //mint usdc token into candidate ata
+    const usdcMintToTx = new Transaction().add(
+        createMintToInstruction(usdcMint.publicKey, candidateAta, payer.publicKey, 900000000)
+    );
+    usdcMintToTx.recentBlockhash = svm.latestBlockhash();
+    usdcMintToTx.sign(payer);
+    const usdcMintToRes = svm.sendTransaction(usdcMintToTx);
+    console.log("usdcMintToRes:", usdcMintToRes);
+
     return {
         payer,
         usdcMint,
@@ -100,6 +129,11 @@ export const createValues = async (svm: LiteSVM, program: Program<Aaas>): Promis
             winningThreshold: 8500,
             creator,
             vault
+        },
+        candidate: {
+            payer: candidate,
+            account: candidateAccountPda[0],
+            ata: candidateAta,
         }
     }
 }

@@ -13,6 +13,7 @@ pub struct JoinChallenge<'info> {
     pub candidate: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [CHALLENGE_SEED, challenge.service.key().as_ref(), challenge.id.key().as_ref()],
         bump = challenge.bump
     )]

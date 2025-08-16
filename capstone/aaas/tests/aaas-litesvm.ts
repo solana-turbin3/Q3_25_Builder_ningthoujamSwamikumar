@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { IdlAccounts, BN } from "@coral-xyz/anchor";
 import { Aaas } from "../target/types/aaas";
 import { Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction } from "@solana/web3.js";
-import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, unpackAccount, AccountLayout } from "@solana/spl-token";
 import { join } from "path";
 import { createValues, ITestValues } from "./utils";
 
@@ -155,8 +155,47 @@ describe.only("aaas with litesvm", () => {
     console.log("Expectation✅ - challenge fields are as expected");
   })
 
-  it("is challenge joined!", async () => {
+  it("should join challenge!", async () => {
+    const tx = await program.methods.joinChallenge()
+      .accounts({
+        tokenProgram: TOKEN_PROGRAM_ID,
+        usdcMint: testValues.usdcMint.publicKey,
+        candidate: testValues.candidate.payer.publicKey,
+        challenge: testValues.challenge.key, //just passing challenge is not enough to derive both challenge, and candidateAccount PDAs
+        candidateAccount: testValues.candidate.account, //this is needed as 
+      }).transaction();
+    tx.recentBlockhash = svm.latestBlockhash();
+    tx.sign(testValues.candidate.payer);
 
+    console.log("Join challenge tx:", tx);
+
+    const sim = svm.simulateTransaction(tx);
+    console.log(sim.meta().logs());
+
+    const res = svm.sendTransaction(tx);
+    if (res instanceof FailedTransactionMetadata) throw new Error("Expected join challenge to be successful!");
+
+    const candidateInfo = svm.getAccount(testValues.candidate.account);
+    expect(candidateInfo).to.be.not.null;
+
+    const candidateAccount = program.coder.accounts.decode<AaasAccounts["candidateAccount"]>(
+      "candidateAccount", Buffer.from(candidateInfo?.data!));
+    expect(candidateAccount.acceptance).to.be.equal(0);
+    expect(candidateAccount.candidate.toBase58()).to.be.equal(testValues.candidate.payer.publicKey.toBase58());
+    expect(candidateAccount.proof).to.be.equal("");
+    expect(candidateAccount.rewarded).to.be.false;
+    console.log("Expectation✅ - candidate account has expected values");
+
+    const vaultInfo = svm.getAccount(testValues.challenge.vault);
+    const vaultAccount = AccountLayout.decode(Buffer.from(vaultInfo?.data!));
+    expect(Number(vaultAccount.amount)).to.be.equal(testValues.challenge.stakeAmnt);
+    console.log("Expectation✅ - vault has expected staked amount");
+
+    const challengeInfo = svm.getAccount(testValues.challenge.key);
+    const challengeAccount = program.coder.accounts.decode<AaasAccounts["challenge"]>(
+      "challenge", Buffer.from(challengeInfo?.data!));
+    expect(challengeAccount.candidateCount).to.be.equal(1);
+    console.log("Expectation✅ - Challenge account is updated as expected");
   })
 
 })
