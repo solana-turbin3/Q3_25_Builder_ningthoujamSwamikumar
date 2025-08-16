@@ -1,12 +1,14 @@
 {
   "compilerOptions": {
     "types": ["mocha", "chai"],
-    "typeRoots": ["./node_modules/@types"],
-    "lib": ["es2020"],
-    "target": "es2020",
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "lib": ["es2020"], // Use a more modern lib version
+    "module": "commonjs",
+    "target": "es2020", // Match the lib for consistency
+    "moduleResolution": "node", // This is the key fix
     "esModuleInterop": true,
-    "strict": true,
+    "resolveJsonModule": true, // Good practice for importing JSON files
+    "outDir": "dist", // Good practice to specify an output directory
+    "strict": true, // Highly recommended for safer code
+    "skipLibCheck": true // Can speed up compilation
   }
 }

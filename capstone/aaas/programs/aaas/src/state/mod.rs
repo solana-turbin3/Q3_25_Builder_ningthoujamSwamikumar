@@ -35,7 +35,7 @@ pub struct Challenge {
     ///winning acceptance threshold in basis point
     pub winning_threshold: u16,
     #[max_len(200)]
-    pub proof: String,
+    pub proof: String, //offchain link to proof description
 }
 
 #[account]
