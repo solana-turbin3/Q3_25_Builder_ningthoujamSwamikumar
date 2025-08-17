@@ -14,6 +14,7 @@ pub struct ValidateProof<'info> {
     pub validator: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [CHALLENGE_SEED, challenge.service.key().as_ref(), challenge.id.key().as_ref()],
         bump = challenge.bump
     )]
@@ -75,28 +76,24 @@ impl<'info> ValidateProof<'info> {
         );
 
         //calculate existing acceptance rate
-        let mut acceptance_rate = self
-            .candidate_account
-            .acceptance
-            .checked_div(self.challenge.candidate_count as u16)
-            .unwrap()
+        let acceptance_rate = (self.candidate_account.acceptance as u64)
             .checked_mul(10000)
+            .unwrap()
+            .checked_div(self.challenge.candidate_count as u64)
             .unwrap();
         //update the acceptance
         self.candidate_account.acceptance.add_assign(1);
         //update winner count in challenge, if its winning and not already counted
-        if acceptance_rate >= self.challenge.winning_threshold {
+        if acceptance_rate >= self.challenge.winning_threshold as u64 {
             Ok(())
         } else {
             //new acceptance rate, after updating acceptance
-            acceptance_rate = self
-                .candidate_account
-                .acceptance
-                .checked_div(self.challenge.candidate_count as u16)
-                .unwrap()
+            let acceptance_rate = (self.candidate_account.acceptance as u64)
                 .checked_mul(10000)
+                .unwrap()
+                .checked_div(self.challenge.candidate_count as u64)
                 .unwrap();
-            if acceptance_rate >= self.challenge.winning_threshold {
+            if acceptance_rate >= self.challenge.winning_threshold as u64 {
                 //reached winning threshold for the first time
                 self.challenge.winner_count.add_assign(1);
             };

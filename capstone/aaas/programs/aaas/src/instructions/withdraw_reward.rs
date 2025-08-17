@@ -76,19 +76,16 @@ impl<'info> WithdrawReward<'info> {
                 .unwrap(),
             AaasError::ValidationPeriod
         );
-        msg!("withdraw reward is as per the time");
 
         // Acceptance rate check
-        let acceptance_rate = self
-            .winner_account
-            .acceptance
-            .checked_mul(10_000) //multiplication first before division gives more precision
+        let acceptance_rate = (self.winner_account.acceptance as u64)
+            .checked_mul(10000)
             .unwrap()
-            .checked_div(self.challenge.candidate_count as u16)
+            .checked_div(self.challenge.candidate_count as u64)
             .unwrap();
 
         require!(
-            acceptance_rate >= self.challenge.winning_threshold,
+            acceptance_rate >= self.challenge.winning_threshold as u64,
             AaasError::WinningThreshold
         );
         msg!(
@@ -145,7 +142,7 @@ impl<'info> WithdrawReward<'info> {
                     from: self.vault.to_account_info(),
                     mint: self.usdc_mint.to_account_info(),
                     to: self.winner_ata.to_account_info(),
-                    authority: self.winner.to_account_info(),
+                    authority: self.challenge.to_account_info(),
                 },
                 &[&[
                     CHALLENGE_SEED,

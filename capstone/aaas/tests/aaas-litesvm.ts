@@ -483,7 +483,8 @@ describe.only("aaas with litesvm", () => {
    * we'll use new candidates as validator, while the candidate define in testValues will be the candidate
    */
 
-  it("withdraw rewards too soon, and it shold failed!", async () => {
+  it("withdraw rewards too soon, and it should failed!", async () => {
+    svm.expireBlockhash();
     //reset time to base or 0 to allow for join challenge
     setClock(svm, BigInt(0));
 
@@ -492,6 +493,10 @@ describe.only("aaas with litesvm", () => {
       const newCandidate = await joinChallengeWithNewCandidate(svm, testValues, program);
       candidates.push(newCandidate);
     }
+    const challengeAccount = program.coder.accounts.decode<AaasAccounts["challenge"]>(
+      "challenge", Buffer.from(svm.getAccount(testValues.challenge.key)?.data!)
+    );
+    expect(challengeAccount.candidateCount).to.be.greaterThan(30);
     console.log("candidates joined challenge✔️");
 
     //set clock within validation period to submit proof, and validate
@@ -531,11 +536,14 @@ describe.only("aaas with litesvm", () => {
     expect(tooSoonRes).to.be.instanceOf(FailedTransactionMetadata);
     expect(tooSoonSim.meta().logs().some(log => log.includes("ValidationPeriod"))).to.be.true;
     console.log("withdraw reward too soon, denied✔️");
+
+    setClock(svm, BigInt(0)); //reset clock 
   })
 
   it("withdraw reward with low votes, and it should failed!", async () => {
     //set time to after validation period
     const newTime = BigInt(testValues.challenge.endTime.toNumber() + (60 * 60 * 24) + 1000);
+    svm.expireBlockhash();
     setClock(svm, newTime);
     console.log("new time:", svm.getClock().unixTimestamp, " is it what I set?", newTime === svm.getClock().unixTimestamp);
 
@@ -559,19 +567,43 @@ describe.only("aaas with litesvm", () => {
     expect(lowVoteRes).to.be.instanceOf(FailedTransactionMetadata);
     expect(lowVoteSim.meta().logs().some(log => log.includes("WinningThreshold"))).to.be.true;
     console.log("withdraw reward with low acceptance, denied✔️");
+
+    setClock(svm, BigInt(0)); //reset time, this is not necessary
   })
 
-  it("should withdraw reward at right time with enough acceptanc!", async () => {
+  it("should withdraw reward!", async () => {
+    svm.expireBlockhash();
+
+    //set time to validation period
+    setClock(svm, BigInt(testValues.challenge.startTime.toNumber() + 1000));
     //validate testValue candidate
-    candidates.forEach(async ([candidate, candidateAccount]) => {
+    let validation_count = 0;
+    for (const [candidate, candidateAccount] of candidates) {
+      validation_count++;
+      if (candidate.publicKey.equals(testValues.candidate.payer.publicKey)) continue;
       const [sim, res] = await validateProof(svm, testValues, candidate, testValues.candidate.account, program);
+      if (sim instanceof FailedTransactionMetadata) console.log(sim.meta().logs());
       expect(res).to.be.instanceOf(TransactionMetadata);
-    })
-    const candidateAccountData2 = program.coder.accounts.decode<AaasAccounts["candidateAccount"]>(
+    }
+    const candidateAccountData = program.coder.accounts.decode<AaasAccounts["candidateAccount"]>(
       "candidateAccount", Buffer.from(svm.getAccount(testValues.candidate.account)?.data!)
     );
-    expect(candidateAccountData2.acceptance).to.be.greaterThanOrEqual(30);
-    console.log("test candidate has accpetance >= 30 ✔️");
+    expect(candidateAccountData.acceptance).to.be.greaterThanOrEqual(30);
+    const challengeAccount = program.coder.accounts.decode<AaasAccounts["challenge"]>(
+      "challenge", Buffer.from(svm.getAccount(testValues.challenge.key)?.data!)
+    );
+    // console.log("challenge:", challengeAccount);
+    // console.log("candidateAccount:", candidateAccountData);
+    expect(challengeAccount.candidateCount).to.be.greaterThan(30);
+    expect(challengeAccount.winnerCount).to.be.greaterThan(0);
+    console.log("challenge account is all set for reward withdrawal ✔️");
+
+    //set time to withdrawal
+    setClock(svm, BigInt(testValues.challenge.endTime.toNumber() + 87000));
+
+    //ata states before withdrawal
+    const vaultInfo = AccountLayout.decode(Buffer.from(svm.getAccount(testValues.challenge.vault)?.data!));
+    const treasuryInfo = AccountLayout.decode(Buffer.from(svm.getAccount(testValues.treasury)?.data!));
 
     //withdraw during validation period, and it will failed
     const tx = await program.methods.withdrawReward().accounts({
@@ -586,16 +618,21 @@ describe.only("aaas with litesvm", () => {
       treasury: testValues.treasury,
     }).transaction();
     tx.recentBlockhash = svm.latestBlockhash();
+    tx.feePayer = testValues.candidate.payer.publicKey;
     tx.sign(testValues.candidate.payer);
     const txSim = svm.simulateTransaction(tx);
     const txRes = svm.sendTransaction(tx);
     console.log(txSim.meta().logs());
     expect(txRes).to.be.instanceOf(TransactionMetadata);
     expect(txSim.meta().logs().some(log => log.includes("failed"))).to.be.false;
-    console.log("withdraw reward with high acceptance, succeed");
+    console.log("withdraw reward with enough acceptance, succeed ✔️");
 
-    //checks
-    //const 
+    //checks if the token transfer are as expected
+    const vaultInfo2 = AccountLayout.decode(Buffer.from(svm.getAccount(testValues.challenge.vault)?.data!));
+    const treasuryInfo2 = AccountLayout.decode(Buffer.from(svm.getAccount(testValues.treasury)?.data!));
+    expect(new BN(vaultInfo.amount.toString(10)).gt(new BN(vaultInfo2.amount.toString(10)))).to.be.true;
+    expect(new BN(treasuryInfo2.amount.toString(10)).gt(new BN(treasuryInfo.amount.toString(10)))).to.be.true;
+    console.log("Expectation✅ - token transfer are as expected");
   })
 
 })
