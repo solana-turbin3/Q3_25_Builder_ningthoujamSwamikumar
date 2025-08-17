@@ -583,7 +583,6 @@ describe.only("aaas with litesvm", () => {
       if (candidate.publicKey.equals(testValues.candidate.payer.publicKey)) continue;
       const [sim, res] = await validateProof(svm, testValues, candidate, testValues.candidate.account, program);
       if (sim instanceof FailedTransactionMetadata) console.log(sim.meta().logs());
-      if (validation_count > 28) console.log(sim.meta().logs());
       expect(res).to.be.instanceOf(TransactionMetadata);
     }
     const candidateAccountData = program.coder.accounts.decode<AaasAccounts["candidateAccount"]>(
