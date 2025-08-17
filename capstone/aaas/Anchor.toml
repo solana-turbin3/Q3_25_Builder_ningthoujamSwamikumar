@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-aaas = "3K3jk5TxBYpK4Fb9ogLoZu91cGxxS7PEPwe3AxdegUgJ"
+aaas = "3SjXbrVTBAxCpLT9fdYuSaMJnpHa1fxx7ncBFvoQsnrE"
 
 [registry]
 url = "https://api.apr.dev"
@@ -17,3 +17,8 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "pnpm exec ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+# Devnet program id (will be auto-synced with target/deploy/aaas-keypair.json)
+[programs.devnet]
+aaas = "3SjXbrVTBAxCpLT9fdYuSaMJnpHa1fxx7ncBFvoQsnrE"
+
