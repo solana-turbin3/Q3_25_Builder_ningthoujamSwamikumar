@@ -50,6 +50,10 @@ pub mod aaas {
         ctx.accounts.handler(ctx.bumps.candidate_account)
     }
 
+    pub fn exit_challenge(ctx: Context<ExitChallenge>) -> Result<()> {
+        ctx.accounts.handler()
+    }
+
     pub fn submit_proof(ctx: Context<SubmitProof>, proof: String) -> Result<()> {
         ctx.accounts.handler(proof)
     }

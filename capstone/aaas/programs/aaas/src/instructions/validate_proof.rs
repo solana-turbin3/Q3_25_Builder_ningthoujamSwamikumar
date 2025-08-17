@@ -62,6 +62,18 @@ impl<'info> ValidateProof<'info> {
             AaasError::ValidationPeriodEnded
         );
 
+        //validation period is within challenge start, and 24 hrs after challenge end
+        require!(
+            now > self.challenge.start_time,
+            AaasError::ChallengeNotStarted
+        );
+
+        //check if the candidate has proof submitted
+        require!(
+            !self.candidate_account.proof.is_empty(),
+            AaasError::RequiredProof
+        );
+
         //calculate existing acceptance rate
         let mut acceptance_rate = self
             .candidate_account
@@ -76,6 +88,7 @@ impl<'info> ValidateProof<'info> {
         if acceptance_rate >= self.challenge.winning_threshold {
             Ok(())
         } else {
+            //new acceptance rate, after updating acceptance
             acceptance_rate = self
                 .candidate_account
                 .acceptance

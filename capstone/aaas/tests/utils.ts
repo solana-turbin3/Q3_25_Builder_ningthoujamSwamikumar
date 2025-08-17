@@ -1,11 +1,12 @@
 import { BN, Program } from "@coral-xyz/anchor";
-import { ACCOUNT_SIZE, createAssociatedTokenAccountInstruction, createInitializeMintInstruction, createMintToInstruction, getAssociatedTokenAddressSync, MINT_SIZE, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { createAssociatedTokenAccountInstruction, createInitializeMintInstruction, createMintToInstruction, getAssociatedTokenAddressSync, MINT_SIZE, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
-import { FailedTransactionMetadata, LiteSVM } from "litesvm";
+import { FailedTransactionMetadata, LiteSVM, SimulatedTransactionInfo, TransactionMetadata } from "litesvm";
 import { Aaas } from "../target/types/aaas";
+import { expect } from "chai";
 
 export type ITestValues = {
-    payer: Keypair;
+    admin: Keypair;
     usdcMint: Keypair;
     config: {
         key: PublicKey;
@@ -33,16 +34,23 @@ export type ITestValues = {
         payer: Keypair;
         account: PublicKey;
         ata: PublicKey;
-    }
+    },
+    treasury: PublicKey,
 }
 
+/**
+ * 
+ * @param svm 
+ * @param program 
+ * @returns create values that are required in testings
+ */
 export const createValues = async (svm: LiteSVM, program: Program<Aaas>): Promise<ITestValues> => {
-    const payer = new Keypair();
-    svm.airdrop(payer.publicKey, BigInt(100_000_000));
+    const admin = new Keypair();
+    svm.airdrop(admin.publicKey, BigInt(100_000_000));
     const usdcMint = new Keypair();
 
     let multiSigners: Keypair[] = [];
-    multiSigners.push(payer);
+    multiSigners.push(admin);
     multiSigners.push(new Keypair());
     multiSigners.push(new Keypair());
     multiSigners.push(new Keypair());
@@ -53,7 +61,7 @@ export const createValues = async (svm: LiteSVM, program: Program<Aaas>): Promis
     const createUsdcMintTx = new Transaction().add(
         SystemProgram.createAccount(
             {
-                fromPubkey: payer!.publicKey,
+                fromPubkey: admin!.publicKey,
                 lamports: Number(lamports),
                 newAccountPubkey: usdcMint.publicKey,
                 programId: TOKEN_PROGRAM_ID,
@@ -61,10 +69,10 @@ export const createValues = async (svm: LiteSVM, program: Program<Aaas>): Promis
             }
         )
     ).add(
-        createInitializeMintInstruction(usdcMint.publicKey, 6, payer.publicKey, null, TOKEN_PROGRAM_ID)
+        createInitializeMintInstruction(usdcMint.publicKey, 6, admin.publicKey, null, TOKEN_PROGRAM_ID)
     );
     createUsdcMintTx.recentBlockhash = svm.latestBlockhash();
-    createUsdcMintTx.sign(payer, usdcMint);
+    createUsdcMintTx.sign(admin, usdcMint);
     const res = svm.sendTransaction(createUsdcMintTx);
     console.log("create usdc mint account ✔️:", res);
 
@@ -81,32 +89,13 @@ export const createValues = async (svm: LiteSVM, program: Program<Aaas>): Promis
     ], program.programId);
     const vault = getAssociatedTokenAddressSync(usdcMint.publicKey, challengePda[0], true);
 
-    const candidate = new Keypair();
-    if (svm.airdrop(candidate.publicKey, BigInt(100 * LAMPORTS_PER_SOL)) instanceof FailedTransactionMetadata)
-        throw new Error("Airdrop candidate failed!");
-    const candidateAccountPda = PublicKey.findProgramAddressSync([
-        Buffer.from("aaasCandidate"), servicePda[0].toBuffer(), challengePda[0].toBuffer(), candidate.publicKey.toBuffer()
-    ], program.programId);
-    const candidateAta = getAssociatedTokenAddressSync(usdcMint.publicKey, candidate.publicKey);
-    const candidateAtaTx = new Transaction().add(
-        createAssociatedTokenAccountInstruction(candidate.publicKey, candidateAta, candidate.publicKey, usdcMint.publicKey)
-    );
-    candidateAtaTx.recentBlockhash = svm.latestBlockhash();
-    candidateAtaTx.sign(candidate);
-    const candidateAtaRes = svm.sendTransaction(candidateAtaTx);
-    console.log("candidateAtaRes:", candidateAtaRes);
+    const [candidate, candidateAccount] = generateCandidate(svm, servicePda[0], challengePda[0], program.programId);
+    const candidateAta = await initCandidateAta(usdcMint, candidate, svm, admin);
 
-    //mint usdc token into candidate ata
-    const usdcMintToTx = new Transaction().add(
-        createMintToInstruction(usdcMint.publicKey, candidateAta, payer.publicKey, 900000000)
-    );
-    usdcMintToTx.recentBlockhash = svm.latestBlockhash();
-    usdcMintToTx.sign(payer);
-    const usdcMintToRes = svm.sendTransaction(usdcMintToTx);
-    console.log("usdcMintToRes:", usdcMintToRes);
+    const treasury = getAssociatedTokenAddressSync(usdcMint.publicKey, admin.publicKey, false);
 
     return {
-        payer,
+        admin,
         usdcMint,
         config: {
             key: configPda[0],
@@ -132,8 +121,185 @@ export const createValues = async (svm: LiteSVM, program: Program<Aaas>): Promis
         },
         candidate: {
             payer: candidate,
-            account: candidateAccountPda[0],
+            account: candidateAccount,
             ata: candidateAta,
-        }
+        },
+        treasury
     }
+}
+
+/**
+ * generate new candidate if candidate is not provided, and candidateAccount
+ * @param svm 
+ * @param service 
+ * @param challenge 
+ * @param programId 
+ * @returns an array of candidate keypair, and candidateAccount
+ */
+export const generateCandidate = (
+    svm: LiteSVM,
+    service: PublicKey,
+    challenge: PublicKey,
+    programId: PublicKey,
+    defaultCandidate?: Keypair,
+): [Keypair, PublicKey] => {
+    const candidate = defaultCandidate ?? new Keypair();
+    //console.log("candidate in generateCandidate: ", candidate);
+    if (!defaultCandidate && svm.airdrop(candidate.publicKey, BigInt(10 * LAMPORTS_PER_SOL)) instanceof FailedTransactionMetadata)
+        throw new Error("Airdrop candidate failed!");
+    const candidateAccountPda = PublicKey.findProgramAddressSync([
+        Buffer.from("aaasCandidate"), service.toBuffer(), challenge.toBuffer(), candidate.publicKey.toBuffer()
+    ], programId);
+
+    return [candidate, candidateAccountPda[0]];
+}
+
+/**
+ * derive ata and mint some usdc
+ * @param usdcMint 
+ * @param candidate 
+ * @param svm 
+ * @param payer usdc mint authority
+ * @return candidate ata
+ */
+export const initCandidateAta = async (usdcMint: Keypair, candidate: Keypair, svm: LiteSVM, payer: Keypair): Promise<PublicKey> => {
+    const candidateAta = getAssociatedTokenAddressSync(usdcMint.publicKey, candidate.publicKey);
+    const candidateAtaTx = new Transaction().add(
+        createAssociatedTokenAccountInstruction(candidate.publicKey, candidateAta, candidate.publicKey, usdcMint.publicKey)
+    );
+    candidateAtaTx.recentBlockhash = svm.latestBlockhash();
+    candidateAtaTx.sign(candidate);
+    const candidateAtaRes = svm.sendTransaction(candidateAtaTx);
+    console.log("candidateAtaRes:", candidateAtaRes);
+
+    //mint usdc token into candidate ata
+    const usdcMintToTx = new Transaction().add(
+        createMintToInstruction(usdcMint.publicKey, candidateAta, payer.publicKey, 900000000)
+    );
+    usdcMintToTx.recentBlockhash = svm.latestBlockhash();
+    usdcMintToTx.sign(payer);
+    const usdcMintToRes = svm.sendTransaction(usdcMintToTx);
+    console.log("usdcMintToRes:", usdcMintToRes);
+
+    return candidateAta;
+}
+
+/**
+ * creates a keypair, airdrop it, and join challenge
+ * @param svm 
+ * @param testValues 
+ * @param program 
+ * @returns keypair, and associated candidate account
+ */
+export const joinChallengeWithNewCandidate = async (
+    svm: LiteSVM,
+    testValues: ITestValues,
+    program: Program<Aaas>
+): Promise<[Keypair, PublicKey]> => {
+    const [candidate, candidateAccount] = generateCandidate(
+        svm, testValues.service.key, testValues.challenge.key, program.programId);
+    await initCandidateAta(testValues.usdcMint, candidate, svm, testValues.admin);
+
+    //join the challenge and then later exit after the challenge started
+    const joinTx = await program.methods.joinChallenge()
+        .accounts({
+            tokenProgram: TOKEN_PROGRAM_ID,
+            usdcMint: testValues.usdcMint.publicKey,
+            candidate: candidate.publicKey,
+            //@ts-ignore
+            challenge: testValues.challenge.key, //just passing challenge is not enough to derive both challenge, and candidateAccount PDAs
+            candidateAccount, //this is needed as 
+        }).transaction();
+    joinTx.recentBlockhash = svm.latestBlockhash();
+    joinTx.sign(candidate);
+    const joinTxSim = svm.simulateTransaction(joinTx);
+    //console.log(joinTxSim.meta().logs());
+    const joinTxRes = svm.sendTransaction(joinTx);
+    //console.log("joinTxRes:", joinTxRes);
+    expect(joinTxRes).to.be.instanceOf(TransactionMetadata);
+    console.log("Joined Challenge✔️");
+
+    return [candidate, candidateAccount];
+}
+
+/**
+ * submits a dummy proof link for a given candidate
+ * @param svm 
+ * @param program 
+ * @param challenge 
+ * @param candidate 
+ * @param candidateAccount 
+ */
+export const submitProof = async (
+    svm: LiteSVM,
+    program: Program<Aaas>,
+    challenge: PublicKey,
+    candidate: Keypair,
+    candidateAccount: PublicKey
+) => {
+    const proof = "http://linkt/to/proof";
+    const tx = await program.methods.submitProof(proof)
+        .accounts({
+            challenge,
+            candidate: candidate.publicKey,
+            candidateAccount,
+        }).transaction();
+    tx.recentBlockhash = svm.latestBlockhash();
+    tx.sign(candidate);
+    const sim = svm.simulateTransaction(tx);
+    //console.log(sim.meta().logs());
+    const res = svm.sendTransaction(tx);
+    expect(res).to.be.instanceOf(TransactionMetadata);
+    console.log("Proof Submitted✔️");
+}
+
+/**
+ * sets validator clock to a given unix timestamp
+ * @param svm 
+ * @param newTime 
+ */
+export const setClock = (svm: LiteSVM, newTime: bigint) => {
+    let clock = svm.getClock();
+    clock.unixTimestamp = newTime;
+    svm.setClock(clock);
+}
+
+/**
+ * Validates proof for a given candidate account, by a given validator
+ * @param svm 
+ * @param testValues 
+ * @param validatorKp 
+ * @param candidateAccount 
+ * @param program 
+ * @returns returns simulation result and send transaction result in an array
+ */
+export const validateProof = async (
+    svm: LiteSVM,
+    testValues: ITestValues,
+    validatorKp: Keypair,
+    candidateAccount: PublicKey,
+    program: Program<Aaas>
+): Promise<[
+    FailedTransactionMetadata | SimulatedTransactionInfo,
+    FailedTransactionMetadata | TransactionMetadata
+]> => {
+    const [validator, validatorAccount] = generateCandidate(svm, testValues.service.key, testValues.challenge.key, program.programId, validatorKp);
+    const validation = PublicKey.findProgramAddressSync([Buffer.from("aaasValidation"), testValues.service.key.toBuffer(), testValues.challenge.key.toBuffer(), candidateAccount.toBuffer(), validator.publicKey.toBuffer()], program.programId)[0];
+
+    const tx = await program.methods.validateProof()
+        .accounts({
+            validator: validator.publicKey,
+            //@ts-ignore
+            challenge: testValues.challenge.key,
+            validatorAccount,
+            candidateAccount,
+            validation,
+        }).transaction();
+    tx.recentBlockhash = svm.latestBlockhash();
+    tx.sign(validator);
+
+    const sim = svm.simulateTransaction(tx);
+    const res = svm.sendTransaction(tx);
+
+    return [sim, res];
 }

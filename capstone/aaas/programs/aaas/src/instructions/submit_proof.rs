@@ -27,9 +27,21 @@ pub struct SubmitProof<'info> {
 
 impl<'info> SubmitProof<'info> {
     pub fn handler(&mut self, proof: String) -> Result<()> {
-        //check if challenge has ended, can't submit after challenge ends
+        //check if the challenge has started
         let now = Clock::get()?.unix_timestamp as u64;
+        require!(
+            now > self.challenge.start_time,
+            AaasError::ChallengeNotStarted
+        );
+
+        //check if challenge has ended, can't submit after challenge ends
         require!(now < self.challenge.end_time, AaasError::ChallengeEnded);
+
+        //shouldn't allow resubmit
+        require!(
+            self.candidate_account.proof.is_empty(),
+            AaasError::DuplicateProof
+        );
 
         //save the proof, and initialized the acceptance at 0
         self.candidate_account.proof = proof;

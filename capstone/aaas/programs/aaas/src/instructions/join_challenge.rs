@@ -12,6 +12,7 @@ pub struct JoinChallenge<'info> {
     #[account(mut)]
     pub candidate: Signer<'info>,
 
+    ///anchor can't auto derive the pda, as the seeds are reference from its own account
     #[account(
         mut,
         seeds = [CHALLENGE_SEED, challenge.service.key().as_ref(), challenge.id.key().as_ref()],
@@ -19,6 +20,7 @@ pub struct JoinChallenge<'info> {
     )]
     pub challenge: Account<'info, Challenge>,
 
+    ///anchor can't auto derive the pda, as this will be done in depth 3
     #[account(
         init,
         payer = candidate,
@@ -70,10 +72,14 @@ impl<'info> JoinChallenge<'info> {
             self.usdc_mint.decimals,
         )?;
         //initialize candidate account
-        self.candidate_account.candidate = self.candidate.key();
-        self.candidate_account.challenge = self.challenge.key();
-        self.candidate_account.bump = bump;
-        self.candidate_account.rewarded = false;
+        self.candidate_account.set_inner(CandidateAccount {
+            challenge: self.challenge.key(),
+            proof: "".to_string(),
+            candidate: self.candidate.key(),
+            acceptance: 0u16,
+            bump,
+            rewarded: false,
+        });
 
         //update candidate count in challenge
         self.challenge.candidate_count.add_assign(1);

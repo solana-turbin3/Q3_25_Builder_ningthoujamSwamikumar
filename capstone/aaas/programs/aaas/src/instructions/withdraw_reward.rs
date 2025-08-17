@@ -69,9 +69,14 @@ impl<'info> WithdrawReward<'info> {
         //check if the validate period is over
         let now = Clock::get()?.unix_timestamp as u64;
         require!(
-            now > self.challenge.end_time.checked_add(VALIDATION_PERIOD).unwrap(),
+            now > self
+                .challenge
+                .end_time
+                .checked_add(VALIDATION_PERIOD)
+                .unwrap(),
             AaasError::ValidationPeriod
         );
+        msg!("withdraw reward is as per the time");
 
         // Acceptance rate check
         let acceptance_rate = self
@@ -85,6 +90,11 @@ impl<'info> WithdrawReward<'info> {
         require!(
             acceptance_rate >= self.challenge.winning_threshold,
             AaasError::WinningThreshold
+        );
+        msg!(
+            "withdraw reward falls short of acceptance rate of {} with {} acceptance",
+            acceptance_rate,
+            self.winner_account.acceptance
         );
 
         // Reward calculation
