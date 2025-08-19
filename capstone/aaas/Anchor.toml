@@ -17,6 +17,8 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "pnpm exec ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+build-devnet = "anchor build -- --no-default-features --features devnet"
+build-mainnet = "anchor build -- --no-default-features --features mainnet"
 
 # Devnet program id (will be auto-synced with target/deploy/aaas-keypair.json)
 [programs.devnet]

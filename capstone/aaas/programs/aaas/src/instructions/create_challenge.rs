@@ -3,7 +3,8 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface;
 
 use crate::constants::{CHALLENGE_SEED, DISCRIMINATOR, SERVICE_SEED};
-use crate::{Challenge, Service};
+use crate::error::AaasError;
+use crate::{usdc_mint_value, Challenge, Service};
 
 #[derive(Accounts)]
 #[instruction(id:Pubkey)]
@@ -26,6 +27,10 @@ pub struct CreateChallenge<'info> {
     )]
     pub challenge: Account<'info, Challenge>,
 
+    #[account(
+        constraint = usdc_mint_value().map_or(true, |expected| expected == usdc_mint.key()) 
+        @ AaasError::InvalidUSDC
+    )]
     pub usdc_mint: InterfaceAccount<'info, token_interface::Mint>,
 
     #[account(

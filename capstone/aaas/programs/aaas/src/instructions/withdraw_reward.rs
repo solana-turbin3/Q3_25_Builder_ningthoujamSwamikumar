@@ -3,7 +3,7 @@ use anchor_spl::token_interface;
 
 use crate::constants::{CANDIDATE_SEED, CHALLENGE_SEED, CONFIG_SEED, SERVICE_SEED};
 use crate::error::AaasError;
-use crate::{AaasConfig, CandidateAccount, Challenge, Service, VALIDATION_PERIOD};
+use crate::{usdc_mint_value, AaasConfig, CandidateAccount, Challenge, Service, VALIDATION_PERIOD};
 
 #[derive(Accounts)]
 pub struct WithdrawReward<'info> {
@@ -45,6 +45,10 @@ pub struct WithdrawReward<'info> {
     )]
     pub treasury: InterfaceAccount<'info, token_interface::TokenAccount>,
 
+    #[account(
+        constraint = usdc_mint_value().map_or(true, |expected| expected == usdc_mint.key()) 
+        @ AaasError::InvalidUSDC
+    )]
     pub usdc_mint: InterfaceAccount<'info, token_interface::Mint>,
 
     #[account(

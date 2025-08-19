@@ -9,13 +9,15 @@ crate-type = ["cdylib", "lib"]
 name = "aaas"
 
 [features]
-default = []
+default = ["localnet"]
+localnet=[]
+devnet=[]
+mainnet=[]
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
-
 
 [dependencies]
 anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
@@ -23,4 +25,3 @@ anchor-spl = "0.31.1"
 
 [dev-dependencies]
 litesvm = "0.6.1"
-
