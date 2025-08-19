@@ -21,3 +21,4 @@ pub const CANDIDATE_SEED: &[u8] = b"aaasCandidate";
 
 #[constant]
 pub const VALIDATE_SEED: &[u8] = b"aaasValidation";
+

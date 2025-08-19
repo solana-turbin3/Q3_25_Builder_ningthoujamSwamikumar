@@ -6,7 +6,7 @@ use anchor_spl::token_interface;
 
 use crate::constants::{CONFIG_SEED, DISCRIMINATOR};
 use crate::error::AaasError;
-use crate::AaasConfig;
+use crate::{usdc_mint_value, AaasConfig};
 
 #[derive(Accounts)]
 ///Global config to govern all the services
@@ -31,6 +31,10 @@ pub struct Initialize<'info> {
     )]
     pub treasury: InterfaceAccount<'info, token_interface::TokenAccount>,
 
+    #[account(
+        constraint = usdc_mint_value().map_or(true, |expected| expected == usdc_mint.key()) 
+        @ AaasError::InvalidUSDC
+    )]
     pub usdc_mint: InterfaceAccount<'info, token_interface::Mint>,
 
     pub system_program: Program<'info, System>,

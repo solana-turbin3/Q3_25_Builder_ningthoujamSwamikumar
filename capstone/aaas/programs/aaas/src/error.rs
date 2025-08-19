@@ -2,6 +2,9 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum AaasError {
+    #[msg("Invalid USDC mint address!")]
+    InvalidUSDC,
+
     #[msg("Challenge started!")]
     ChallengeStarted,
 

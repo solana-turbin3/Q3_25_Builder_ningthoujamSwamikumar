@@ -5,7 +5,7 @@ use anchor_spl::token_interface;
 
 use crate::constants::{CANDIDATE_SEED, CHALLENGE_SEED, DISCRIMINATOR};
 use crate::error::AaasError;
-use crate::{CandidateAccount, Challenge};
+use crate::{usdc_mint_value, CandidateAccount, Challenge};
 
 #[derive(Accounts)]
 pub struct JoinChallenge<'info> {
@@ -30,6 +30,10 @@ pub struct JoinChallenge<'info> {
     )]
     pub candidate_account: Account<'info, CandidateAccount>,
 
+    #[account(
+        constraint = usdc_mint_value().map_or(true, |expected| expected == usdc_mint.key()) 
+        @ AaasError::InvalidUSDC
+    )]
     pub usdc_mint: InterfaceAccount<'info, token_interface::Mint>,
 
     #[account(
