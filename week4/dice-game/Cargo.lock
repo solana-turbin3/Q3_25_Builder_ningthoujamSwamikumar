@@ -135,6 +135,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "anchor-instruction-sysvar"
+version = "0.1.0"
+source = "git+https://github.com/ShrinathNR/anchor-instruction-sysvar.git?branch=version-upgrade#f552a304db6746c1c077057352b03986979ec714"
+dependencies = [
+ "anchor-lang",
+ "solana-program",
+]
+
+[[package]]
 name = "anchor-lang"
 version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -515,6 +524,7 @@ dependencies = [
 name = "dice-game"
 version = "0.1.0"
 dependencies = [
+ "anchor-instruction-sysvar",
  "anchor-lang",
 ]
 
