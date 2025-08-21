@@ -19,5 +19,8 @@ idl-build = ["anchor-lang/idl-build"]
 
 [dependencies]
 anchor-lang = "0.31.1"
+<<<<<<< HEAD
 anchor-instruction-sysvar = { git = "https://github.com/ShrinathNR/anchor-instruction-sysvar.git", branch = "version-upgrade" }
+=======
+>>>>>>> e2eecb5738a546b514ce71c5a7020f742da5f9cb
 

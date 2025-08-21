@@ -99,7 +99,7 @@ pub fn validate_proof(ctx: Context<ValidateProof>) -> Result<()> {...}
 >- doesn't allow if the candidate doesn't have (already submitted) proof.
 >- acceptance_rate are calculated, and winners are marked once.
 
-#### withdraw Reward
+#### Withdraw Reward:
 > candidates with enough *`acceptance`* to get *`acceptance_rate`* higher than *`winning_threshold`* can claim rewards after the *`validation period`*.
 ```rust
 pub fn withdraw_reward(ctx: Context<WithdrawReward>) -> Result<()> {...}
@@ -110,6 +110,20 @@ pub fn withdraw_reward(ctx: Context<WithdrawReward>) -> Result<()> {...}
 >- Winners are tax a *`fee`* amount before transferring to thier USDC token account.
 >- doesn't allow *`withdraw_reward`* before *`validation period`* ends.
 
+#### Ensure true USDC:
+> Ensure USDC in devnet with the build command
+```
+anchor run build-devnet
+```
+> Ensure USDC in mainnet with the build command
+```
+anchor run build-mainnet
+```
+> By default it allows any token as *`usdc_mint`*
+```
+anchor build
+```
+
 ## TODO:
 - Create Challenge ✅
 - Join Challenge ✅
@@ -117,6 +131,4 @@ pub fn withdraw_reward(ctx: Context<WithdrawReward>) -> Result<()> {...}
 - Submit Proof ✅
 - Validate Proof ✅
 - Withdraw Rewards ✅
-- Ensure USDC only
-
 
