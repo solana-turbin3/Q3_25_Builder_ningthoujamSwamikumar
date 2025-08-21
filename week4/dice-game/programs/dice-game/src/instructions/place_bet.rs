@@ -16,7 +16,7 @@ pub struct PlaceBet<'info> {
         payer = player,
         seeds = [BET_SEED, house.key().as_ref(), player.key().as_ref()],
         bump,
-        space = Bet::INIT_SPACE,
+        space = 8 + Bet::INIT_SPACE,
     )]
     pub bet: Account<'info, Bet>,
 
