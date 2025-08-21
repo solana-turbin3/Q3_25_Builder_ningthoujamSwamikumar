@@ -1,0 +1,27 @@
+[package]
+name = "aaas"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "aaas"
+
+[features]
+default = ["localnet"]
+localnet=[]
+devnet=[]
+mainnet=[]
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+
+[dependencies]
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
+anchor-spl = "0.31.1"
+
+[dev-dependencies]
+litesvm = "0.6.1"
